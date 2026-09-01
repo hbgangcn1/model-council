@@ -1,10 +1,15 @@
 """Tier-bridge stub for the public release.
 
 This is a minimal stub that lets the orchestrator import and run end-to-end
-without the optional host-side tier-bridge plugin.
+without the optional host-side tier-bridge plugin. It provides:
 
-For production use, replace this file with your own bridge plugin that talks
-to your model registry (or use a host-side integration like the DSH
+- `wire_for(model, level)`: returns a sensible default wire-format dict for
+  thinking/reasoning parameters.
+- `max_tokens_for(model, which)`: returns a sane default max_tokens value.
+
+**Production note**: this stub does NOT query a live model catalog. For
+production use, replace this file with your own bridge plugin that talks to
+your model registry (or use a host-side integration like the DSH
 host-bridge plugin). See docs/tier-alignment.md for the bridge contract.
 
 The tier-bridge contract requires these two functions:
@@ -12,7 +17,7 @@ The tier-bridge contract requires these two functions:
 - wire_for(model, level): return the wire-format dict for the model at the
   given thinking level (e.g. {"thinking": {"type": "enabled"},
   "reasoning_effort": "high"}).
-- max_tokens_for(model, which): return max_tokens. `which` is either
+- max_tokens_for(model, which): return max_tokens. which is either
   'defaultMaxTokens' (the request default) or 'capabilityMaxTokens' (the
   model's output capability upper bound).
 """

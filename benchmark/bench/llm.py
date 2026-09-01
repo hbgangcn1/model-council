@@ -1,7 +1,7 @@
-"""LLM 调用：v15.6 优先走 host-bridge /api/council/llm-stream 桥接（推荐）；
+"""LLM 调用：v15.6+ 走 LLMClient 抽象（DSH bridge / OpenAI-compat / Anthropic-compat）。
 
 v15.5 兼容路径仍保留：MiniMax → 直连 anthropic、其它 → 直连 deepseek。
-host-bridge接不可用或直连失败时自动 fallback 到兼容路径（保持 v15.5 benchmark 可跑）。"""
+LLM 客户端失败时自动 fallback 到兼容路径（保持 v15.5 benchmark 可跑）。"""
 import json
 import os
 import sys
@@ -12,12 +12,9 @@ from pathlib import Path
 
 from . import config, sandbox
 
-# v15.6 L3：让 benchmark/bench/llm.py 能调 orchestrator/stream_llm.bridge_stream
-# stream_llm.py 在 orchestrator/ 子目录下，orchestrator 没有 __init__.py（不是包），
-# 所以直接 sys.path 注入 orchestrator 目录，让 stream_llm 作为顶层模块被导入。
-_ORCH_DIR = Path(__file__).resolve().parent.parent.parent / "orchestrator"  # council/orchestrator
-if str(_ORCH_DIR) not in sys.path:
-    sys.path.insert(0, str(_ORCH_DIR))
+# v15.6+ LLMClient 抽象：stream_llm 是 orchestrator 包内模块，
+# 直接 import 即可，不需要 sys.path hack。
+from orchestrator import stream_llm  # noqa: E402
 
 UA = "curl/8.0"
 
@@ -221,27 +218,27 @@ def _wire_to_level(thinking_wire: dict) -> str:
 
 
 def call_via_dsh_bridge(model: str, thinking_wire: dict, prompt: str, max_tokens: int):
-    """v15.6 L3：通过 host-bridge /api/council/llm-stream 调任意 model。
+    """v15.6+：通过 LLMClient 抽象调任意 model（默认走 host-bridge，端点由环境变量配置）。
 
-    host-bridge internals走 pi-ai 处理 wire/auth/retry/协议差异；
-    Python 端只关心"调 LLM 拿到 (text, meta)"，与 council_v14.py / stream_llm.bridge_stream 共享同一桥接。
+    v15.6+ 客户端默认包含 host-bridge plugin（DSH_BRIDGE_URL 设置时），
+    也可切到 OpenAI-compat / Anthropic-compat（看环境变量）。
     host-bridge unavailable时 fallback 到原 minimax / deepseek 直连（v15.5 兼容路径）。
     """
-    from stream_llm import bridge_stream  # 已在 sys.path 注入后
     level = _wire_to_level(thinking_wire)
     try:
-        text, meta = bridge_stream(model=model, thinking_level=level,
-                                  prompt=prompt, max_tokens=max_tokens)
-        # 适配 bench 期望的 meta 字段：bridge_stream 返回的 finish_reason 是 "stop"/"error"/None，
+        text, meta = stream_llm.call_stream(
+            model=model, thinking_level=level, prompt=prompt, max_tokens=max_tokens
+        )
+        # 适配 bench 期望的 meta 字段：call_stream 返回的 finish_reason 是 "stop"/"error"，
         # 而 bench 期望 data["choices"][0].get("finish_reason") 风格字符串。
         if meta.get("finish_reason") is None:
-            meta["finish_reason"] = "stop" if not meta.get("bridge_error") else "error"
-        # v15.6：provider 错误（429 等）对非 deepseek/MiniMax 模型必须抛异常（fallback 无意义）
+            meta["finish_reason"] = "stop" if meta.get("error") else "error"
+        # provider 错误（429 等）对非 deepseek/MiniMax 模型必须抛异常（fallback 无意义）
         if meta.get("finish_reason") == "error":
-            raise Exception(f"host-bridge provider error: {meta.get('bridge_error')}")
+            raise Exception(f"LLMClient error: {meta.get('error') or meta.get('transport')}")
         return text, meta
     except Exception as e:
-        # host-bridge unavailable / bridge 失败 → fallback 只对 deepseek/MiniMax 系有意义
+        # LLMClient 失败 → fallback 只对 deepseek/MiniMax 系有意义
         # （glm-5.3-flash 等走 host-bridge 的模型在旧 API 无路由，429 时应重试而非降级）
         if model.startswith("MiniMax"):
             return call_minimax(model, thinking_wire, prompt, max_tokens)
@@ -250,9 +247,10 @@ def call_via_dsh_bridge(model: str, thinking_wire: dict, prompt: str, max_tokens
         raise
 
 
-# v15.6 改造：tool-use case（之前走 deepseek 直连 → glm-5.3-flash HTTP 400）也走 host-bridge
-# 通过 messages + tools 多轮循环实现 function calling。
-DSH_BRIDGE_URL = "http://127.0.0.1:3080/api/council/llm-stream"
+# v15.6+：tool-use case 走 host-bridge（之前走 deepseek 直连 → glm-5.3-flash HTTP 400），
+# 通过 messages + tools 多轮循环实现 function calling。URL 默认来自 stream_llm 模块常量，
+# 可通过 DSH_BRIDGE_URL 环境变量覆盖。
+DSH_BRIDGE_URL = stream_llm.DEFAULT_DSH_URL
 
 
 def _stream_sse_lines(url: str, headers: dict, payload: dict,

@@ -70,7 +70,7 @@ packages = ["orchestrator", "benchmark"]
 
 [tool.pytest.ini_options]
 minversion = "7.0"
-testpaths = ["orchestrator", "benchmark"]
+testpaths = ["orchestrator", "benchmark", "tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]

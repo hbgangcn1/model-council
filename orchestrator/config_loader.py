@@ -4,10 +4,7 @@ import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-BASE = Path(__file__).resolve().parent.parent  # council/
-if str(BASE) not in sys.path:
-    sys.path.insert(0, str(BASE))
-import bridge  # noqa: E402  v15.5 单一数据源：host-side tier-bridge
+from . import tier_bridge  # v15.5 单一数据源：host-side tier-bridge
 
 DEEPSEEK_URL = "https://api.deepseek.com/chat/completions"
 MINIMAX_URL = "https://api.minimaxi.com/anthropic/v1/messages"
@@ -32,9 +29,9 @@ def api_keys() -> dict:
 
 def thinking_param(model: str, level: str) -> dict:
     """v15.5：档位 wire 拼写一律来自 host-side tier-bridge（与主会话同源），无手填映射。"""
-    return bridge.wire_for(model, level)
+    return tier_bridge.wire_for(model, level)
 
 def max_tokens_for_model(model: str, which: str = "defaultMaxTokens") -> int:
     """v15.5：max_tokens 取 host-bridge文件的模型上限（defaultMaxTokens=请求默认，
     capabilityMaxTokens=输出能力上限），不再按档位自定义 16384/8192。"""
-    return bridge.max_tokens_for(model, which)
+    return tier_bridge.max_tokens_for(model, which)
