@@ -1,0 +1,155 @@
+{
+  "schemaVersion": 11,
+  "updatedAt": "2026-06-17T22:20:00+08:00",
+  "updatedBy": "Trace",
+  "notes": "v11 final: glm-5.2 quality 7.26.",
+  "models": {
+    "github-copilot/gpt-5.5": {
+      "provider": "github-copilot",
+      "model": "gpt-5.5",
+      "quality": 7.94,
+      "costPerCall": 0.00712,
+      "pricing": {
+        "uncached_input_per_1m": 2.5,
+        "cached_input_per_1m": 0.25,
+        "output_per_1m": 10.0,
+        "unit": "USD"
+      },
+      "avgTokens": {
+        "input": 800,
+        "cachedPct": 0.8,
+        "output": 200
+      },
+      "monthly": {
+        "source": "GitHub Copilot Pro+",
+        "budget": "$39/月含 7000 credits",
+        "estCalls": 9831
+      }
+    },
+    "github-copilot/claude-opus-4.8": {
+      "provider": "github-copilot",
+      "model": "claude-opus-4.8",
+      "quality": 7.5,
+      "costPerCall": 0.00612,
+      "pricing": {
+        "uncached_input_per_1m": 3.0,
+        "cached_input_per_1m": 0.3,
+        "output_per_1m": 15.0,
+        "unit": "USD"
+      },
+      "avgTokens": {
+        "input": 800,
+        "cachedPct": 0.8,
+        "output": 200
+      },
+      "monthly": {
+        "source": "GitHub Copilot Pro+",
+        "budget": "$39/月含 7000 credits",
+        "estCalls": 11438
+      }
+    },
+    "opencode-go/glm-5.2": {
+      "provider": "opencode-go",
+      "model": "glm-5.2",
+      "quality": 7.26,
+      "costPerCall": 0.002326,
+      "monthly": {
+        "source": "OpenCode Go",
+        "budget": "$10/月",
+        "limit": 4300
+      },
+      "notes": "v11 benchmark avg 7.26/10 (MiniMax-M3 judge). 1M context / 128K max output."
+    },
+    "opencode-go/deepseek-v4-pro": {
+      "provider": "opencode-go",
+      "model": "deepseek-v4-pro",
+      "quality": 7.51,
+      "costPerCall": 0.000583,
+      "monthly": {
+        "source": "OpenCode Go",
+        "budget": "$10/月",
+        "limit": 17153
+      }
+    },
+    "opencode-go/kimi-k2.6": {
+      "provider": "opencode-go",
+      "model": "kimi-k2.6",
+      "quality": 7.46,
+      "costPerCall": 0.001739,
+      "monthly": {
+        "source": "OpenCode Go",
+        "budget": "$10/月",
+        "limit": 5750
+      }
+    },
+    "opencode-go/deepseek-v4-flash": {
+      "provider": "opencode-go",
+      "model": "deepseek-v4-flash",
+      "quality": 7.44,
+      "costPerCall": 6.3e-05,
+      "monthly": {
+        "source": "OpenCode Go",
+        "budget": "$10/月",
+        "limit": 158730
+      }
+    },
+    "opencode-go/qwen3.7-max": {
+      "provider": "opencode-go",
+      "model": "qwen3.7-max",
+      "quality": 7.27,
+      "costPerCall": 0.002096,
+      "monthly": {
+        "source": "OpenCode Go",
+        "budget": "$10/月",
+        "limit": 4771
+      }
+    },
+    "xiaomi-token-plan/mimo-v2.5-pro": {
+      "provider": "xiaomi-token-plan",
+      "model": "mimo-v2.5-pro",
+      "quality": 7.15,
+      "costPerCall": 0,
+      "monthly": {
+        "source": "xiaomi-token-plan",
+        "budget": "FREE (expires 2026-06-27)",
+        "limit": "unlimited"
+      }
+    },
+    "xiaomi-token-plan/mimo-v2.5": {
+      "provider": "xiaomi-token-plan",
+      "model": "mimo-v2.5",
+      "quality": 6.94,
+      "costPerCall": 0,
+      "monthly": {
+        "source": "xiaomi-token-plan",
+        "budget": "FREE (expires 2026-06-27)",
+        "limit": "unlimited"
+      }
+    },
+    "minimax-portal/MiniMax-M3": {
+      "provider": "minimax-portal",
+      "model": "MiniMax-M3",
+      "quality": 6.76,
+      "costPerCall": 0,
+      "monthly": {
+        "source": "minimax-portal",
+        "budget": "FREE (年费 ¥490)",
+        "limit": "unlimited"
+      }
+    },
+    "opencode-go/kimi-k2.7-code": {
+      "provider": "opencode-go",
+      "model": "kimi-k2.7-code",
+      "quality": 7.97,
+      "costPerCall": 0.001724,
+      "monthly": {
+        "source": "OpenCode Go",
+        "budget": "\\/月",
+        "limit": 5800
+      }
+    }
+  },
+  "excluded": [
+    "claude-fable-5 (deleted from GitHub Copilot catalog, model unavailable)"
+  ]
+}

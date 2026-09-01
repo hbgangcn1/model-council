@@ -1,0 +1,117 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Testing
+.pytest_cache/
+.tox/
+.coverage
+.coverage.*
+htmlcov/
+.cache/
+.mypy_cache/
+.ruff_cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Distribution
+*.whl
+
+# --- model-council specific ---
+
+# User data: NEVER commit capabilities/balance/circuit/runtime files
+# (those live in user's `~/.dsh/council/`, not in this repo)
+#
+# Exception: tests/fixtures/*.json ARE committed (they are minimal test data,
+# not real production data).
+capabilities.json
+capabilities.*.bak
+capabilities.rev*.json.bak
+balance-snapshot.json
+circuit-state.json
+elo.json
+cost-drift.json
+cost-reconcile-events.jsonl
+judge-drift.json
+judge-drift-events.jsonl
+guardrail-events.jsonl
+exchange-rates.json
+exchange-rates-history.jsonl
+token-profiles.json
+bench-progress.json
+auto-evolve-*.json
+auto-evolve-*.log
+auto-evolve-events.jsonl
+runtime-feedback.jsonl
+pending-runtime-diff.json
+pending-runtime-diff.*.json
+
+# Top-level JSON files for pytest (committed as minimal fixtures):
+!capabilities.json
+!pricing-profiles.json
+
+# User runs: produced by `python -m orchestrator.council_v14 --task ...`
+# Default location is outside this repo (in user's data dir),
+# but if user runs in-repo, exclude local runs
+runs/
+
+# User-applied benchmark results
+benchmark/responses/
+benchmark/scores/
+benchmark/results/
+benchmark/applied/
+benchmark/longctx-content/
+benchmark/longctx-content/
+
+# Legacy directories
+archive/
+.legacy/
+scratch/
+ledger/
+evidence/
+reports/
+tools/
+benchmarks/
+
+# Secrets (should never be committed, defensive)
+*.token
+*.opencode_key
+.credentials.yaml
+.env
+.env.local
+*.key
+*.pem
+secrets/
+
+# OS
+Thumbs.db

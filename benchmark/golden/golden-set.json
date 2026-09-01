@@ -1,0 +1,133 @@
+{
+  "_comment": "Sample golden set for testing. The real golden set (with curated benchmark items) lives in the user's data dir.",
+  "schemaVersion": "1.0",
+  "version": 1,
+  "hashAlgorithm": "sha256",
+  "hashedFields": [
+    "items"
+  ],
+  "contentHash": "15575c8cfd04d2f87fc70c79b55b8d1505b3b62eda5d0967c445bd338ef9b42c",
+  "updatedAt": "2026-01-01T00:00:00+08:00",
+  "items": [
+    {
+      "id": "G1",
+      "dimension": "reasoning",
+      "task": "If a store sells apples at 3 for $1 and oranges at 5 for $2, how much do 9 apples and 15 oranges cost?",
+      "answer": "9 apples = 3 groups of 3 = $3; 15 oranges = 3 groups of 5 = $6; total $9.",
+      "rubric": "correct calculation (5), clear breakdown (3), concise (2)",
+      "holdout": false,
+      "provenance": {
+        "author": "human",
+        "curator": "the maintainer",
+        "createdAt": "2026-01-01T00:00:00+08:00",
+        "source": "domain-private",
+        "excludedFromCandidateCorpus": true
+      },
+      "expectedScore": 9.5,
+      "badAnswers": [
+        {
+          "label": "wrong arithmetic",
+          "text": "9 apples cost $9 and 15 oranges cost $15, total $24.",
+          "expectedScore": 3.0
+        }
+      ],
+      "machineCheckable": true
+    },
+    {
+      "id": "G2",
+      "dimension": "code",
+      "task": "Write a Python function that returns the factorial of n. Include test cases for n=0, 1, 5.",
+      "answer": "def factorial(n):\n    if n == 0:\n        return 1\n    return n * factorial(n - 1)",
+      "rubric": "correct base case (3), recursive structure (3), handles large n (2), tests (2)",
+      "holdout": false,
+      "provenance": {
+        "author": "human",
+        "curator": "the maintainer",
+        "createdAt": "2026-01-01T00:00:00+08:00",
+        "source": "synthetic-new",
+        "excludedFromCandidateCorpus": true
+      },
+      "expectedScore": 9.0,
+      "badAnswers": [
+        {
+          "label": "no base case",
+          "text": "def factorial(n):\n    return n * factorial(n - 1)",
+          "expectedScore": 2.0
+        }
+      ],
+      "machineCheckable": true
+    },
+    {
+      "id": "G3",
+      "dimension": "chinese",
+      "task": "把下面的中文翻成英文：『今天天气真好，我想去公园散步。』",
+      "answer": "The weather is really nice today; I'd like to go for a walk in the park.",
+      "rubric": "fluent English (5), accurate meaning (4), natural register (1)",
+      "holdout": false,
+      "provenance": {
+        "author": "human",
+        "curator": "the maintainer",
+        "createdAt": "2026-01-01T00:00:00+08:00",
+        "source": "synthetic-new",
+        "excludedFromCandidateCorpus": true
+      },
+      "expectedScore": 9.0,
+      "badAnswers": [
+        {
+          "label": "literal translation",
+          "text": "Today weather really good, I want to go park walk.",
+          "expectedScore": 4.0
+        }
+      ],
+      "machineCheckable": false
+    },
+    {
+      "id": "G4",
+      "dimension": "research",
+      "task": "What are the three most cited limitations of randomized controlled trials?",
+      "answer": "(1) Limited external validity / generalizability (2) High cost and time consumption (3) Ethical constraints on randomization for some interventions.",
+      "rubric": "mentions 3 distinct limitations (5), accurate (3), concise (2)",
+      "holdout": false,
+      "provenance": {
+        "author": "human",
+        "curator": "the maintainer",
+        "createdAt": "2026-01-01T00:00:00+08:00",
+        "source": "domain-private",
+        "excludedFromCandidateCorpus": true
+      },
+      "expectedScore": 8.5,
+      "badAnswers": [
+        {
+          "label": "lists wrong limitations",
+          "text": "The three limitations are: small sample size, lack of blinding, and missing control group.",
+          "expectedScore": 3.0
+        }
+      ],
+      "machineCheckable": false
+    },
+    {
+      "id": "G5",
+      "dimension": "instruction_following",
+      "task": "List exactly 4 colors in this exact format: 1. <color> 2. <color> 3. <color> 4. <color>",
+      "answer": "1. red 2. blue 3. green 4. yellow",
+      "rubric": "exactly 4 items (4), correct format (3), real colors (3)",
+      "holdout": false,
+      "provenance": {
+        "author": "human",
+        "curator": "the maintainer",
+        "createdAt": "2026-01-01T00:00:00+08:00",
+        "source": "synthetic-new",
+        "excludedFromCandidateCorpus": true
+      },
+      "expectedScore": 9.5,
+      "badAnswers": [
+        {
+          "label": "wrong count",
+          "text": "1. red 2. blue 3. green",
+          "expectedScore": 4.0
+        }
+      ],
+      "machineCheckable": true
+    }
+  ]
+}

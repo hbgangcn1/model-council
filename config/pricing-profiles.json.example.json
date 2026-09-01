@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 2,
+  "accountingCurrency": "CNY",
+  "exchangeRates": {
+    "USD": 7.2,
+    "updatedAt": null,
+    "source": null,
+    "stale": true
+  },
+  "providers": {
+    "deepseek-official": {
+      "type": "pay_per_token",
+      "timeFactor": {
+        "peakHours": [
+          [
+            "09:00",
+            "12:00"
+          ],
+          [
+            "14:00",
+            "18:00"
+          ]
+        ],
+        "workdaysOnly": true,
+        "peak": 1.0,
+        "offpeak": 0.5,
+        "note": "北京时区；周末全天低谷（2026-08-23 起）。官方计费按整点窗口，分桶与账单口径一致。"
+      },
+      "thinkingMult": {
+        "off": 1.0,
+        "low": 1.3,
+        "high": 2.3,
+        "max": 2.3,
+        "default": 1.2,
+        "note": "H3 校准入口：high≈2.3× base（2026-08-24 council 评审实测口径）；thinking token 按输出价计费"
+      },
+      "cacheHitRateDefault": 0.0,
+      "models": {
+        "deepseek-v4-pro": {
+          "inputCnyPerMTok": {
+            "peak": 9.0,
+            "offpeak": 4.5
+          },
+          "outputCnyPerMTok": {
+            "peak": 27.0,
+            "offpeak": 13.5
+          },
+          "cacheInputCnyPerMTok": {
+            "peak": 0.3,
+            "offpeak": 0.15
+          },
+          "note": "单价来自 dsh-cost-monitor DS_PRICES（api-docs.deepseek.com 官方定价）"
+        },
+        "deepseek-v4-flash": {
+          "inputCnyPerMTok": {
+            "peak": 3.0,
+            "offpeak": 1.5
+          },
+          "outputCnyPerMTok": {
+            "peak": 9.0,
+            "offpeak": 4.5
+          },
+          "cacheInputCnyPerMTok": {
+            "peak": 0.1,
+            "offpeak": 0.05
+          },
+          "note": "同上"
+        }
+      },
+      "balanceApi": "deepseek/balance",
+      "maxConcurrency": 3
+    },
+    "minimax-cn": {
+      "type": "free_pool",
+      "thinkingMult": {
+        "off": 1.0,
+        "minimal": 1.05,
+        "low": 1.2,
+        "medium": 1.6,
+        "high": 2.0,
+        "default": 1.2,
+        "note": "H3 校准入口：免费池边际成本 0，系数仅用于稀缺性放大前的相对比较"
+      },
+      "models": {
+        "MiniMax-M3": {
+          "inputCnyPerMTok": {
+            "peak": 0,
+            "offpeak": 0
+          },
+          "outputCnyPerMTok": {
+            "peak": 0,
+            "offpeak": 0
+          },
+          "note": "年费/免费池，边际成本 0，稀缺性在 5h/周窗口额度"
+        }
+      },
+      "quotaApi": "minimax/token_plan",
+      "quotaWindows": [
+        "5h",
+        "week"
+      ],
+      "maxConcurrency": 3
+    }
+  }
+}

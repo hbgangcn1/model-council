@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 2,
+  "_comment": "Model Council v15.5 可调参数（外置）。默认值=DESIGN-v14.md v15.5 决议；改动本文件即生效（下一 run 起）。v15.5 判停（the maintainer decided）：θ 三档统一 9.5（理论天花板）、增长枯竭=近 3 轮窗口极差<δ=0.2、删除轮数上限（maxIter/maxRounds）；墙钟改动态预算（wallBudget.*，规模自适应，上限=宿主 1920s−240s 余量）。",
+  "tiers": {
+    "fast": { "theta": 9.5, "lambda_": 0.15, "maxSubtasks": 3, "maxTaskTokens": 4000 },
+    "standard": { "theta": 9.5, "lambda_": 0.1, "maxSubtasks": 4 },
+    "deep": { "theta": 9.5, "lambda_": 0.02, "maxSubtasks": 4 }
+  },
+  "verification": {
+    "minVerifiers": 1,
+    "maxVerifiers": 3,
+    "dualExecTiers": [ "standard", "deep" ]
+  },
+  "circuit": {
+    "failureThreshold": 3,
+    "failureWindowS": 600,
+    "baseBackoffS": 300,
+    "maxBackoffS": 3600,
+    "probeTtlS": 300
+  },
+  "selection": {
+    "divBonus": 0.3,
+    "sampleKnee": 20,
+    "epsilon": 0.05,
+    "mu": 0.001,
+    "defaultCacheHitRate": 0.0,
+    "paretoEnabled": true,
+    "paretoBonus": 0.1,
+    "eloEnabled": true,
+    "eloPenaltyScale": 0.2,
+    "allowlist": [],
+    "staticEligibilityPreFilter": true,
+    "rankNormalize": true
+  },
+  "terminator": {
+    "delta": 0.2,
+    "window": 3
+  },
+  "wallBudget": {
+    "_comment": "v15.5 动态墙钟：预算 = min(maxS, baseS + 每子任务×(执行位数+验证者数)×perSlotS)。fast≈1.3K s / standard-deep≈1.7K s（clamp 上限）",
+    "baseS": 600,
+    "perSlotS": 60,
+    "maxS": 1680
+  },
+  "streaming": {
+    "idleTimeoutS": 180,
+    "totalTimeoutS": 900
+  },
+  "feedback": {
+    "sampleKnee": 20,
+    "minFlipRuns": 10,
+    "minScoreChange": 0.5,
+    "mergeWeight": 0.7,
+    "zToScoreScale": 2.5,
+    "autoApply": true,
+    "requireHeteroScorer": true
+  },
+  "cost": {
+    "reconcileAlertPct": 10.0,
+    "reconcileHour": "04:00"
+  },
+  "ingest": {
+    "emaAlpha": 0.3,
+    "fallbackDimScore": 5.0
+  },
+  "fx": {
+    "staleMaxHours": 26,
+    "staleWarnDays": 1,
+    "staleHaltDays": 3
+  },
+  "judgeDrift": {
+    "enabled": true,
+    "judgeModel": "MiniMax-M3",
+    "judgeThinking": "medium",
+    "judge2Model": "deepseek-v4-flash",
+    "judge2Thinking": "low",
+    "warnDrift": 0.3,
+    "alertThreshold": 1.0,
+    "pauseWriteDrift": 0.5,
+    "crossJudgeAlert": 1.0,
+    "dailyHour": "04:30",
+    "baselineMinItems": 3
+  },
+  "sla": {
+    "_comment": "v15.5b（元评审 F1）：观察性承诺目标，与 v15.5 动态墙钟（wallBudget.*，上限 1680s）对齐——fast 实测 4 轮收敛约 5-10 分钟；standard 上限 1680s；deep 双路更重。成本为纯观察。",
+    "fast": { "wallP50S": 240, "wallP95S": 600, "costCapCny": null },
+    "standard": { "wallP50S": 900, "wallP95S": 1680, "costCapCny": null },
+    "deep": { "wallP50S": 1440, "wallP95S": 2400, "costCapCny": null }
+  }
+}

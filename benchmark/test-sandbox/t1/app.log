@@ -1,0 +1,6 @@
+2026-08-20 09:01:12 INFO  Starting MiniShop API v2.1.0
+2026-08-20 09:01:13 INFO  Loading config from config.yaml
+2026-08-20 09:01:14 INFO  Connecting to database postgres://localhost:5432/minishop
+2026-08-20 09:01:15 INFO  Database connected, pool_size=10
+2026-08-20 09:01:16 INFO  Warming up 4 workers
+2026-08-20 09:01:18 INFO  listening on 9090

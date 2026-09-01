@@ -1,0 +1,142 @@
+{
+  "schemaVersion": 11,
+  "updatedAt": "2026-06-17T22:20:00+08:00",
+  "updatedBy": "Trace",
+  "notes": "v11 final: glm-5.2 benchmark avg 7.26/10, all 50 cases valid after disabling thinking.",
+  "tiers": {
+    "T0-free": {
+      "label": "免费（年费/大额池）",
+      "models": [
+        {
+          "id": "xiaomi-token-plan/mimo-v2.5",
+          "quality": 6.94,
+          "costPerCall": 0,
+          "notes": "xiaomi-token-plan 免费池 ~100B tokens, 2026-06-27 到期"
+        },
+        {
+          "id": "xiaomi-token-plan/mimo-v2.5-pro",
+          "quality": 7.15,
+          "costPerCall": 0,
+          "notes": "xiaomi-token-plan 免费池, thinking default"
+        },
+        {
+          "id": "minimax-portal/MiniMax-M3",
+          "quality": 6.76,
+          "costPerCall": 0,
+          "notes": "minimax-portal 年费 ¥490, 免费调用"
+        }
+      ]
+    },
+    "T1-ultra-low": {
+      "label": "超低成本（<$0.001/call）",
+      "models": [
+        {
+          "id": "opencode-go/deepseek-v4-flash",
+          "quality": 7.44,
+          "costPerCall": 6.3e-05,
+          "notes": "opencode-go $10/月, 158,730 req/月"
+        },
+        {
+          "id": "opencode-go/deepseek-v4-pro",
+          "quality": 7.51,
+          "costPerCall": 0.000583,
+          "notes": "opencode-go $10/月, 17,153 req/月"
+        }
+      ]
+    },
+    "T2-low": {
+      "label": "低成本（$0.001-$0.003/call）",
+      "models": [
+        {
+          "id": "opencode-go/kimi-k2.6",
+          "quality": 7.46,
+          "costPerCall": 0.001739,
+          "notes": "opencode-go $10/月, 5,750 req/月"
+        },
+        {
+          "id": "opencode-go/qwen3.7-max",
+          "quality": 7.27,
+          "costPerCall": 0.002096,
+          "notes": "opencode-go $10/月, 4,771 req/月"
+        },
+        {
+          "id": "opencode-go/glm-5.2",
+          "quality": 7.26,
+          "costPerCall": 0.002326,
+          "notes": "opencode-go $10/月, 4,300 req/月. v11 benchmark avg 7.26/10 (MiniMax-M3 judge, all 50/50 valid)."
+        },
+        {
+          "id": "opencode-go/kimi-k2.7-code",
+          "quality": 7.97,
+          "costPerCall": 0.001724,
+          "notes": "opencode-go \\/月, ~5,800 req/月, NEW #1 quality"
+        }
+      ]
+    },
+    "T3-medium": {
+      "label": "中等成本（$0.005-$0.01/call）",
+      "models": [
+        {
+          "id": "github-copilot/claude-opus-4.8",
+          "quality": 7.5,
+          "costPerCall": 0.00612,
+          "notes": "GitHub Copilot Pro+ $39/月含 7000 credits, 1 credit=$0.01, ~612 credits/call"
+        },
+        {
+          "id": "github-copilot/gpt-5.5",
+          "quality": 7.94,
+          "costPerCall": 0.00712,
+          "notes": "GitHub Copilot Pro+ $39/月含 7000 credits, 1 credit=$0.01, ~712 credits/call"
+        }
+      ]
+    }
+  },
+  "copilotPricing": {
+    "note": "GitHub Copilot Pro+: $39/月含 7000 credits. 1 credit = $0.01.",
+    "gpt-5.5": {
+      "uncached_input": 2.5,
+      "cached_input": 0.25,
+      "output": 10.0,
+      "avgInputTokens": 800,
+      "cacheHitRate": 0.8,
+      "avgOutputTokens": 200,
+      "costPerCall": 0.00712
+    },
+    "claude-opus-4.8": {
+      "uncached_input": 3.0,
+      "cached_input": 0.3,
+      "output": 15.0,
+      "avgInputTokens": 800,
+      "cacheHitRate": 0.8,
+      "avgOutputTokens": 200,
+      "costPerCall": 0.00612
+    }
+  },
+  "opencodeGoPricing": {
+    "note": "OpenCode Go: $10/月共享池. Cost/call = $10 / monthly_limit.",
+    "deepseek-v4-flash": {
+      "monthlyLimit": 158730,
+      "costPerCall": 6.3e-05
+    },
+    "deepseek-v4-pro": {
+      "monthlyLimit": 17153,
+      "costPerCall": 0.000583
+    },
+    "kimi-k2.6": {
+      "monthlyLimit": 5750,
+      "costPerCall": 0.001739
+    },
+    "qwen3.7-max": {
+      "monthlyLimit": 4771,
+      "costPerCall": 0.002096
+    },
+    "glm-5.2": {
+      "monthlyLimit": 4300,
+      "costPerCall": 0.002326
+    },
+    "kimi-k2.7-code": {
+      "monthlyLimit": 5800,
+      "costPerCall": 0.001724
+    }
+  }
+}

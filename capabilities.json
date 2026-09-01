@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 2,
+  "revision": 1,
+  "generatedAt": "2026-01-01T00:00:00+08:00",
+  "updatedAt": "2026-01-01T00:00:00+08:00",
+  "meta": {"source": "tests/fixtures", "note": "Test fixture only"},
+  "dimensions": [
+    {"id": "reasoning", "weight": 0.25},
+    {"id": "code", "weight": 0.20},
+    {"id": "chinese", "weight": 0.05},
+    {"id": "research", "weight": 0.15},
+    {"id": "instruction_following", "weight": 0.10},
+    {"id": "long_context", "weight": 0.10},
+    {"id": "tool_use", "weight": 0.10},
+    {"id": "creativity", "weight": 0.025},
+    {"id": "safety", "weight": 0.025}
+  ],
+  "models": {
+    "deepseek-v4-pro__high": {
+      "baseModel": "deepseek-v4-pro",
+      "thinking": "high",
+      "provider": "deepseek-official",
+      "vendorGroup": "deepseek",
+      "tier": "T1",
+      "stable": true,
+      "identityUnknown": false,
+      "capabilities": {
+        "reasoning": {"score": 9.5, "samples": 5},
+        "code": {"score": 9.0, "samples": 5},
+        "chinese": {"score": 8.0, "samples": 5},
+        "research": {"score": 9.0, "samples": 5},
+        "instruction_following": {"score": 9.5, "samples": 5},
+        "long_context": {"score": 9.0, "samples": 5},
+        "tool_use": {"score": 8.5, "samples": 5},
+        "creativity": {"score": 8.0, "samples": 5},
+        "safety": {"score": 9.5, "samples": 5}
+      }
+    },
+    "deepseek-v4-flash__low": {
+      "baseModel": "deepseek-v4-flash",
+      "thinking": "low",
+      "provider": "deepseek-official",
+      "vendorGroup": "deepseek",
+      "tier": "T1",
+      "stable": true,
+      "identityUnknown": false,
+      "capabilities": {
+        "reasoning": {"score": 8.0, "samples": 5},
+        "code": {"score": 9.0, "samples": 5},
+        "chinese": {"score": 7.0, "samples": 5},
+        "research": {"score": 7.5, "samples": 5},
+        "instruction_following": {"score": 9.0, "samples": 5},
+        "long_context": {"score": 8.0, "samples": 5},
+        "tool_use": {"score": 8.0, "samples": 5},
+        "creativity": {"score": 7.0, "samples": 5},
+        "safety": {"score": 9.0, "samples": 5}
+      }
+    },
+    "MiniMax-M3__medium": {
+      "baseModel": "MiniMax-M3",
+      "thinking": "medium",
+      "provider": "minimax-cn",
+      "vendorGroup": "minimax",
+      "tier": "T0",
+      "stable": true,
+      "identityUnknown": false,
+      "capabilities": {
+        "reasoning": {"score": 8.5, "samples": 5},
+        "code": {"score": 7.5, "samples": 5},
+        "chinese": {"score": 9.0, "samples": 5},
+        "research": {"score": 8.0, "samples": 5},
+        "instruction_following": {"score": 8.5, "samples": 5},
+        "long_context": {"score": 8.0, "samples": 5},
+        "tool_use": {"score": 7.5, "samples": 5},
+        "creativity": {"score": 9.0, "samples": 5},
+        "safety": {"score": 8.5, "samples": 5}
+      }
+    }
+  },
+  "ingestMeta": {},
+  "runtimeFeedback": {}
+}

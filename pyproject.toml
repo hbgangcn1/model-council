@@ -1,0 +1,110 @@
+[build-system]
+requires = ["hatchling>=1.18"]
+build-backend = "hatchling.build"
+
+[project]
+name = "model-council"
+version = "15.6.0"
+description = "Self-evolving, cost-aware multi-model convergent review system"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [
+    { name = "Robert" },
+]
+keywords = [
+    "llm",
+    "multi-agent",
+    "model-evaluation",
+    "council",
+    "consensus",
+    "ai-review",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+requires-python = ">=3.10"
+dependencies = [
+    "httpx>=0.25",
+    "PyYAML>=6.0",
+    "pydantic>=2.0",
+]
+
+[project.optional-dependencies]
+# Optional: DSH bridge adapter (NOT distributed with this package; see docs/dsh-integration.md)
+dsh = [
+    # Adapter code lives in user's DSH profile, not here
+]
+test = [
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+    "pytest-timeout>=2.2",
+]
+dev = [
+    "ruff>=0.1",
+    "mypy>=1.7",
+    "build>=1.0",
+    "twine>=4.0",
+]
+
+[project.urls]
+Documentation = "https://github.com/robert/model-council"
+Issues = "https://github.com/robert/model-council/issues"
+Source = "https://github.com/robert/model-council"
+
+[project.scripts]
+model-council = "orchestrator.council_v14:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["orchestrator", "benchmark"]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["orchestrator", "benchmark"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    "--tb=short",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "UP", # pyupgrade
+]
+ignore = [
+    "E501", # line too long (let ruff format handle it)
+    "B008", # function call in default argument
+]
+
+[tool.ruff.lint.per-file-ignores]
+"**/test_*.py" = ["B011"]  # asserts in tests
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false  # gradual typing allowed
+ignore_missing_imports = true
