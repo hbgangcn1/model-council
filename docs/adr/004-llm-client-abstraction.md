@@ -119,8 +119,8 @@ because tool-calling is not yet abstracted (see below).
 ## Consequences
 
 **Positive**:
-- Public release becomes standalone-installable: `pip install model-council`
-  works without DSH (with appropriate env vars)
+- Public release becomes standalone-installable: clone the repo and
+  `pip install -e .` works without DSH (with appropriate env vars)
 - DSH users continue working transparently (default `DSH_BRIDGE_URL` keeps
   the old behavior)
 - Adding new transports (e.g. local llama.cpp, Azure OpenAI) requires only a

@@ -4,6 +4,12 @@
 
 [中文版](#中文版) | [English](#english)
 
+> **分发**：本仓库即源头——**不发布到 PyPI**。
+> 朋友想跑就 git clone 后 `pip install -e .`（见 [安装](#安装从源码)）。
+
+> **Distribution**: this repository is the source of truth — **not** published to PyPI.
+> Friends who want to run it clone the repo and `pip install -e .` (see [Install](#install-from-source)).
+
 ---
 
 ## English
@@ -58,19 +64,15 @@ maintainer-approved pending diffs.
     └──────────────────────────────────────────┘
 ```
 
-### Install
+### Install (from source)
 
 ```bash
-pip install model-council
-```
-
-Or from source:
-
-```bash
-git clone https://github.com/robert/model-council.git
+git clone https://github.com/hbgangcn1/model-council.git
 cd model-council
 pip install -e .
 ```
+
+> This project is **not** published to PyPI. Install from a git clone.
 
 ### Configure
 
@@ -217,19 +219,15 @@ MIT — see `LICENSE`.
     └──────────────────────────────────────────┘
 ```
 
-### 安装
+### 安装（从源码）
 
 ```bash
-pip install model-council
-```
-
-或从源码：
-
-```bash
-git clone https://github.com/robert/model-council.git
+git clone https://github.com/hbgangcn1/model-council.git
 cd model-council
 pip install -e .
 ```
+
+> 本项目**不发布到 PyPI**，从 git 克隆安装。
 
 ### 配置
 

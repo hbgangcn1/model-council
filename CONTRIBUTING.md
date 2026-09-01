@@ -11,9 +11,9 @@ By participating, you agree to uphold it.
 
 ## Reporting bugs
 
-Open a [GitHub Issue](https://github.com/robert/model-council/issues) with:
+Open a [GitHub Issue](https://github.com/hbgangcn1/model-council/issues) with:
 - A minimal reproduction (task text, expected vs actual behavior)
-- Your environment (`python --version`, `pip show model-council`)
+- Your environment (`python --version`, `model-council.__version__`)
 - The capability archive version (`revision` field in `capabilities.json`)
 - Relevant log output (use `--tb=short` for pytest, `--verbose` for CLI)
 
@@ -25,7 +25,7 @@ doc improvements, bug fixes), a PR is fine directly.
 ## Development setup
 
 ```bash
-git clone https://github.com/robert/model-council.git
+git clone https://github.com/hbgangcn1/model-council.git
 cd model-council
 pip install -e ".[dev,test]"
 ```

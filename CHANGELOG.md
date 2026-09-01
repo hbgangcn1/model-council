@@ -91,6 +91,9 @@ Python library.
   `~/.dsh/profiles/web/node_modules/host-bridge plugin/`) — a separate integration project.
 - Personal evaluation data and private capability benchmarks from the maintainer's
   internal usage (privacy-protected).
+- **PyPI distribution** — this repository is the source of truth. The project is
+  not published to PyPI; friends who want to run it clone the repo and
+  `pip install -e .`.
 
 ## Pre-history
 

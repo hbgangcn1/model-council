@@ -2,7 +2,7 @@
 
 ## Setup
 
-After installing (`pip install model-council`), create a working directory:
+After cloning the repo and `pip install -e .`, create a working directory:
 
 ```bash
 mkdir my-council-workspace

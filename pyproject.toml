@@ -58,9 +58,9 @@ dev = [
 ]
 
 [project.urls]
-Documentation = "https://github.com/robert/model-council"
-Issues = "https://github.com/robert/model-council/issues"
-Source = "https://github.com/robert/model-council"
+Documentation = "https://github.com/hbgangcn1/model-council"
+Issues = "https://github.com/hbgangcn1/model-council/issues"
+Source = "https://github.com/hbgangcn1/model-council"
 
 [project.scripts]
 model-council = "orchestrator.council_v14:main"
