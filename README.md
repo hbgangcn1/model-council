@@ -102,7 +102,7 @@ Model Council needs:
    benchmark any time to replace it with your own scores).
 3. Optionally a pricing profile.
 
-See `config/council-params.example.json` for tunable parameters and `docs/configuration.md`
+See `config/council-params.example.json` for tunable parameters and `docs/operations.md`
 for the full setup guide.
 
 ### Run
@@ -134,8 +134,9 @@ print(result["status"])  # "converged" / "early_stop" / "stalled" / "forced"
 
 ### Benchmark
 
-Before using the selector on real tasks, populate `capabilities.json` with measurements
-of every model × thinking-level combination you have:
+The repo ships a prebuilt snapshot (`capabilities.json`: 18 entries,
+`benchmark/golden/golden-set.json`: 36 items). Re-run the benchmark any time
+to replace it with your own measurements:
 
 ```bash
 # Run full benchmark (1-2 hours, ~$15-25 depending on models)
@@ -159,6 +160,8 @@ python -m orchestrator.update_capabilities --pending    # build pending diff
 python -m orchestrator.update_capabilities --apply      # apply pending (gated)
 ```
 
+Full daily loop (4 jobs, cron, troubleshooting): `docs/operations.md`.
+
 ### Architecture highlights
 
 - **Capability-driven selection**: every `model@thinking` has a 9-dimensional score
@@ -180,9 +183,11 @@ python -m orchestrator.update_capabilities --apply      # apply pending (gated)
 
 ### What's NOT in this repo
 
-- Your `capabilities.json`, `balance-snapshot.json`, `circuit-state.json` — those
-  live in your data dir (default `~< user-data-dir >/`) and contain your model registry,
-  account balances, and runtime telemetry. Never commit them.
+- Your **live** `capabilities.json` edits, `balance-snapshot.json`,
+  `circuit-state.json` — the repo ships a sanitized starter snapshot, but your
+  runtime writes (bench ingests, self-evolve applies, balances, telemetry) stay
+  in your working copy and must not be committed back (see `.gitignore` and
+  `docs/operations.md` §2).
 - Historical runs (`runs/`), reports (`reports/`), evidence (`evidence/`),
   ledger (`ledger/`), legacy OpenClaw-era tooling (`tools/`) — those accumulate over
   time on your local machine. They are **not** part of the library.
@@ -277,7 +282,7 @@ Model Council 需要：
    换成自己的分数）。
 3. 可选的价格档案
 
-详见 `config/council-params.example.json` 和 `docs/configuration.md`。
+详见 `config/council-params.example.json` 和 `docs/operations.md`。
 
 ### 运行
 
@@ -308,7 +313,8 @@ print(result["status"])  # "converged" / "early_stop" / "stalled" / "forced"
 
 ### 跑分
 
-真实用 selector 之前，先用 benchmark 填充 `capabilities.json`：
+仓库自带预置快照（`capabilities.json` 18 条、`benchmark/golden/golden-set.json` 36 题）。
+随时重跑 benchmark 换成自己的分数：
 
 ```bash
 # 跑全量 benchmark（1-2 小时，依模型不同 $15-25）
@@ -331,6 +337,8 @@ python -m orchestrator.update_capabilities --pending    # 构建 pending diff
 python -m orchestrator.update_capabilities --apply      # 合入（受门控）
 ```
 
+完整日常链（4 个任务、cron、排障）：`docs/operations.md`。
+
 ### 架构亮点
 
 - **能力驱动选择**：每个 `model@thinking` 有 9 维分数（推理 / 代码 / 中文 / 研究 /
@@ -347,9 +355,9 @@ python -m orchestrator.update_capabilities --apply      # 合入（受门控）
 
 ### 这个仓库**不**包含什么
 
-- 你的 `capabilities.json`、`balance-snapshot.json`、`circuit-state.json`——它们
-  在你的数据目录（默认 `~< user-data-dir >/`），含你的模型注册、账户余额、运行期遥测。
-  **绝不提交**。
+- 你的**实时** `capabilities.json` 改动、`balance-snapshot.json`、`circuit-state.json`——
+  仓库只带脱敏启动快照；跑分摄入、自进化落盘、余额、遥测都留在你的工作目录，
+  **不要提交回来**（见 `.gitignore` 和 `docs/operations.md` §2）。
 - 历史 runs (`runs/`)、reports (`reports/`)、evidence (`evidence/`)、ledger (`ledger/`)、
   旧 OpenClaw 时代工具 (`tools/`)——这些在你本地累积，**不**属于本库。
 - DSH（DeepSeek Harness）桥插件（在 `~/.dsh/profiles/web/node_modules/host-bridge plugin/`）——

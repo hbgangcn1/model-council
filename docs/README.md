@@ -6,6 +6,7 @@ This directory contains the design documentation for Model Council.
 
 | # | Document | Purpose |
 |---|---|---|
+| 0 | [operations.md](operations.md) | Run it daily: ops chain, cron, data files, troubleshooting (start here to operate) |
 | 1 | [architecture.md](architecture.md) | High-level system architecture, role flow, file layout |
 | 2 | [design-decisions.md](design-decisions.md) | Full design document (v15.6 baseline, every decision since v14) |
 | 3 | [roadmap.md](roadmap.md) | Active roadmap (v15.5 → next) |
