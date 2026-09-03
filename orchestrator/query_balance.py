@@ -52,12 +52,11 @@ def query(force: bool = False) -> dict:
                 return json.loads(SNAPSHOT.read_text(encoding="utf-8"))
             except Exception:
                 pass
-    cred = Path.home() / ".dsh" / ".credentials.yaml"
-    keys = {}
-    for line in cred.read_text(encoding="utf-8").splitlines():
-        parts = line.split(":", 1)
-        if len(parts) == 2 and parts[0].strip().isupper():
-            keys[parts[0].strip()] = parts[1].strip()
+    try:
+        from .config_loader import api_keys as _api_keys
+    except ImportError:
+        from config_loader import api_keys as _api_keys  # type: ignore
+    keys = _api_keys()  # v15.9：凭证来源收敛到 config_loader（env/标准文件/DSH 四级）
     snap = {"ts": int(time.time() * 1000), "ok": {}, "stale": False, "staleReasons": []}  # ts 统一 epoch 毫秒
     for name, fn in (("deepseek", _deepseek_balance), ("minimax", _minimax_quota)):
         try:

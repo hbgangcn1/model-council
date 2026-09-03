@@ -74,11 +74,32 @@ pip install -e .
 
 > This project is **not** published to PyPI. Install from a git clone.
 
+### 5-minute quickstart
+
+```bash
+python scripts/first_run.py   # checks data + credentials + offline tests (no cost)
+```
+
+If keys are missing it tells you exactly what to do (`export ...KEY=...` or
+`python scripts/first_run.py --init-credentials`). Then run your first council:
+
+```bash
+python -m orchestrator.council_v14 --task "Review this design decision" --tier fast
+```
+
+The repo ships a prebuilt snapshot — 18 capability entries, 36 golden items,
+37 bench cases — so you skip the $15–25 first benchmark. Run
+`./scripts/first-bench.sh` later when you want your own scores.
+
 ### Configure
 
 Model Council needs:
 1. **At least 2 LLM providers** with API keys (cross-vendor verification).
-2. A `capabilities.json` archive (start empty, run benchmark to populate).
+   Three ways (first found wins): `MODEL_COUNCIL_CREDENTIALS=/path/to/file`,
+   env vars (`DEEPSEEK_API_KEY`, `MINIMAX_CN_API_KEY`, `*_COMPAT_*`),
+   or `~/.model-council/credentials` (`KEY: value` per line).
+2. A `capabilities.json` archive (**prebuilt snapshot included**; re-run
+   benchmark any time to replace it with your own scores).
 3. Optionally a pricing profile.
 
 See `config/council-params.example.json` for tunable parameters and `docs/configuration.md`
@@ -229,11 +250,31 @@ pip install -e .
 
 > 本项目**不发布到 PyPI**，从 git 克隆安装。
 
+### 5 分钟快速开始
+
+```bash
+python scripts/first_run.py   # 自检：数据 + 凭证 + 离线测试，不花钱
+```
+
+缺 key 会明确告诉你怎么做（`export ...KEY=...` 或
+`python scripts/first_run.py --init-credentials`）。然后跑第一次 council：
+
+```bash
+python -m orchestrator.council_v14 --task "评审这个设计决策" --tier fast
+```
+
+仓库自带预置快照——18 条能力档案、36 题金标、37 道考题，跳过 $15–25 的
+首次跑分。以后想换自己的分数再跑 `./scripts/first-bench.sh`。
+
 ### 配置
 
 Model Council 需要：
-1. **至少 2 个 LLM provider** 的 API key（跨厂商验证）
-2. 一份 `capabilities.json` 档案（从空开始，跑 benchmark 填充）
+1. **至少 2 个 LLM provider** 的 API key（跨厂商验证）。
+   三种给法（按优先级）：`MODEL_COUNCIL_CREDENTIALS=/path/to/file`、
+   环境变量（`DEEPSEEK_API_KEY`、`MINIMAX_CN_API_KEY`、` *_COMPAT_*`）、
+   或 `~/.model-council/credentials`（每行 `KEY: value`）。
+2. 一份 `capabilities.json` 档案（**已自带预置快照**；随时可跑 benchmark
+   换成自己的分数）。
 3. 可选的价格档案
 
 详见 `config/council-params.example.json` 和 `docs/configuration.md`。

@@ -1,82 +1,1387 @@
 {
   "schemaVersion": 2,
-  "revision": 1,
-  "generatedAt": "2026-01-01T00:00:00+08:00",
-  "updatedAt": "2026-01-01T00:00:00+08:00",
-  "meta": {"source": "tests/fixtures", "note": "Test fixture only"},
+  "revision": 16,
+  "generatedAt": "2026-09-03T19:19:44.246348+08:00",
+  "updatedAt": "2026-09-03T19:19:44.246348+08:00",
+  "_comment": "Sanitized public snapshot: scores/samples/cost/latency kept; run linkage, timestamps and local feedback dropped. See scripts/sanitize_snapshot.py.",
   "dimensions": [
-    {"id": "reasoning", "weight": 0.25},
-    {"id": "code", "weight": 0.20},
-    {"id": "chinese", "weight": 0.05},
-    {"id": "research", "weight": 0.15},
-    {"id": "instruction_following", "weight": 0.10},
-    {"id": "long_context", "weight": 0.10},
-    {"id": "tool_use", "weight": 0.10},
-    {"id": "creativity", "weight": 0.025},
-    {"id": "safety", "weight": 0.025}
+    "reasoning",
+    "code",
+    "chinese",
+    "research",
+    "instruction_following",
+    "long_context",
+    "tool_use",
+    "creativity",
+    "safety"
   ],
   "models": {
-    "deepseek-v4-pro__high": {
+    "deepseek-v4-pro__off": {
+      "identityUnknown": false,
       "baseModel": "deepseek-v4-pro",
-      "thinking": "high",
+      "thinking": "off",
+      "stable": true,
+      "tier": "T1-pay-per-token",
       "provider": "deepseek-official",
       "vendorGroup": "deepseek",
-      "tier": "T1",
-      "stable": true,
-      "identityUnknown": false,
       "capabilities": {
-        "reasoning": {"score": 9.5, "samples": 5},
-        "code": {"score": 9.0, "samples": 5},
-        "chinese": {"score": 8.0, "samples": 5},
-        "research": {"score": 9.0, "samples": 5},
-        "instruction_following": {"score": 9.5, "samples": 5},
-        "long_context": {"score": 9.0, "samples": 5},
-        "tool_use": {"score": 8.5, "samples": 5},
-        "creativity": {"score": 8.0, "samples": 5},
-        "safety": {"score": 9.5, "samples": 5}
+        "reasoning": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 8.45,
+          "samples": 41
+        },
+        "code": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 8.44,
+          "samples": 45
+        },
+        "chinese": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 8.62,
+          "samples": 41
+        },
+        "research": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.45,
+          "samples": 41
+        },
+        "instruction_following": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 8.55,
+          "samples": 41
+        },
+        "long_context": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.85,
+          "samples": 41
+        },
+        "tool_use": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.1,
+          "samples": 40
+        },
+        "creativity": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 8.15,
+          "samples": 40
+        },
+        "safety": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 7.4,
+          "samples": 40
+        }
+      },
+      "runtime": {
+        "verifyScoreStd": 0.83,
+        "latencyP50Ms": 15920.0,
+        "successRate": 0.67,
+        "avgVerifyScore": 6.85,
+        "samples": 210
+      },
+      "cost": {
+        "costPerCallCny": 0.010646,
+        "avgInputTokens": 480.0,
+        "avgOutputTokens": 774.0
+      }
+    },
+    "deepseek-v4-pro__low": {
+      "identityUnknown": false,
+      "baseModel": "deepseek-v4-pro",
+      "thinking": "low",
+      "stable": true,
+      "tier": "T1-pay-per-token",
+      "provider": "deepseek-official",
+      "vendorGroup": "deepseek",
+      "capabilities": {
+        "reasoning": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 8.25,
+          "samples": 41
+        },
+        "code": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.18,
+          "samples": 45
+        },
+        "chinese": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.38,
+          "samples": 41
+        },
+        "research": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.25,
+          "samples": 41
+        },
+        "instruction_following": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.3,
+          "samples": 41
+        },
+        "long_context": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 10.0,
+          "samples": 41
+        },
+        "tool_use": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.9,
+          "samples": 40
+        },
+        "creativity": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 7.92,
+          "samples": 40
+        },
+        "safety": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.78,
+          "samples": 40
+        }
+      },
+      "runtime": {
+        "successRate": null,
+        "avgVerifyScore": null,
+        "samples": 0
+      },
+      "cost": {
+        "costPerCallCny": null,
+        "avgInputTokens": null,
+        "avgOutputTokens": null
+      }
+    },
+    "deepseek-v4-pro__high": {
+      "identityUnknown": false,
+      "baseModel": "deepseek-v4-pro",
+      "thinking": "high",
+      "stable": true,
+      "tier": "T1-pay-per-token",
+      "provider": "deepseek-official",
+      "vendorGroup": "deepseek",
+      "capabilities": {
+        "reasoning": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 8.6,
+          "samples": 41
+        },
+        "code": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.37,
+          "samples": 45
+        },
+        "chinese": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.04,
+          "samples": 41
+        },
+        "research": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 8.72,
+          "samples": 41
+        },
+        "instruction_following": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.0,
+          "samples": 41
+        },
+        "long_context": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.85,
+          "samples": 41
+        },
+        "tool_use": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.77,
+          "samples": 40
+        },
+        "creativity": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 7.97,
+          "samples": 40
+        },
+        "safety": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.78,
+          "samples": 40
+        }
+      },
+      "runtime": {
+        "successRate": null,
+        "avgVerifyScore": null,
+        "samples": 0
+      },
+      "cost": {
+        "costPerCallCny": null,
+        "avgInputTokens": null,
+        "avgOutputTokens": null
+      }
+    },
+    "deepseek-v4-pro__max": {
+      "identityUnknown": false,
+      "baseModel": "deepseek-v4-pro",
+      "thinking": "max",
+      "stable": true,
+      "tier": "T1-pay-per-token",
+      "provider": "deepseek-official",
+      "vendorGroup": "deepseek",
+      "capabilities": {
+        "reasoning": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 8.7,
+          "samples": 41
+        },
+        "code": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.19,
+          "samples": 45
+        },
+        "chinese": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.01,
+          "samples": 41
+        },
+        "research": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.27,
+          "samples": 41
+        },
+        "instruction_following": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.5,
+          "samples": 41
+        },
+        "long_context": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.85,
+          "samples": 41
+        },
+        "tool_use": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 10.0,
+          "samples": 40
+        },
+        "creativity": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 8.08,
+          "samples": 40
+        },
+        "safety": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.88,
+          "samples": 40
+        }
+      },
+      "runtime": {
+        "verifyScoreStd": 0.61,
+        "latencyP50Ms": 89960.0,
+        "successRate": 1.0,
+        "avgVerifyScore": 8.0,
+        "samples": 70
+      },
+      "cost": {
+        "costPerCallCny": 0.067096,
+        "avgInputTokens": 705.0,
+        "avgOutputTokens": 5433.0
+      }
+    },
+    "deepseek-v4-flash__off": {
+      "identityUnknown": false,
+      "baseModel": "deepseek-v4-flash",
+      "thinking": "off",
+      "stable": true,
+      "tier": "T1-pay-per-token",
+      "provider": "deepseek-official",
+      "vendorGroup": "deepseek",
+      "capabilities": {
+        "reasoning": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.7,
+          "samples": 41
+        },
+        "code": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 8.41,
+          "samples": 45
+        },
+        "chinese": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.17,
+          "samples": 41
+        },
+        "research": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.75,
+          "samples": 41
+        },
+        "instruction_following": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 8.5,
+          "samples": 41
+        },
+        "long_context": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.5,
+          "samples": 41
+        },
+        "tool_use": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.2,
+          "samples": 40
+        },
+        "creativity": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 8.03,
+          "samples": 40
+        },
+        "safety": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 6.5,
+          "samples": 40
+        }
+      },
+      "runtime": {
+        "successRate": null,
+        "avgVerifyScore": null,
+        "samples": 0
+      },
+      "cost": {
+        "costPerCallCny": null,
+        "avgInputTokens": null,
+        "avgOutputTokens": null
       }
     },
     "deepseek-v4-flash__low": {
+      "identityUnknown": false,
       "baseModel": "deepseek-v4-flash",
       "thinking": "low",
+      "stable": true,
+      "tier": "T1-pay-per-token",
       "provider": "deepseek-official",
       "vendorGroup": "deepseek",
-      "tier": "T1",
-      "stable": true,
-      "identityUnknown": false,
       "capabilities": {
-        "reasoning": {"score": 8.0, "samples": 5},
-        "code": {"score": 9.0, "samples": 5},
-        "chinese": {"score": 7.0, "samples": 5},
-        "research": {"score": 7.5, "samples": 5},
-        "instruction_following": {"score": 9.0, "samples": 5},
-        "long_context": {"score": 8.0, "samples": 5},
-        "tool_use": {"score": 8.0, "samples": 5},
-        "creativity": {"score": 7.0, "samples": 5},
-        "safety": {"score": 9.0, "samples": 5}
+        "reasoning": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.0,
+          "samples": 41
+        },
+        "code": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.28,
+          "samples": 45
+        },
+        "chinese": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 8.99,
+          "samples": 41
+        },
+        "research": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 8.75,
+          "samples": 41
+        },
+        "instruction_following": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.35,
+          "samples": 41
+        },
+        "long_context": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 10.0,
+          "samples": 41
+        },
+        "tool_use": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.43,
+          "samples": 40
+        },
+        "creativity": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 7.78,
+          "samples": 40
+        },
+        "safety": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.72,
+          "samples": 40
+        }
+      },
+      "runtime": {
+        "latencyP50Ms": 21400.0,
+        "successRate": 1.0,
+        "avgVerifyScore": 9.0,
+        "samples": 11
+      },
+      "cost": {
+        "costPerCallCny": 0.008916,
+        "avgInputTokens": 208.0,
+        "avgOutputTokens": 2276.0
+      }
+    },
+    "deepseek-v4-flash__high": {
+      "identityUnknown": false,
+      "baseModel": "deepseek-v4-flash",
+      "thinking": "high",
+      "stable": true,
+      "tier": "T1-pay-per-token",
+      "provider": "deepseek-official",
+      "vendorGroup": "deepseek",
+      "capabilities": {
+        "reasoning": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.0,
+          "samples": 40
+        },
+        "code": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.47,
+          "samples": 44
+        },
+        "chinese": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 8.82,
+          "samples": 40
+        },
+        "research": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.2,
+          "samples": 40
+        },
+        "instruction_following": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.35,
+          "samples": 40
+        },
+        "long_context": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.5,
+          "samples": 40
+        },
+        "tool_use": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.53,
+          "samples": 39
+        },
+        "creativity": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 7.75,
+          "samples": 39
+        },
+        "safety": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.2,
+          "samples": 39
+        }
+      },
+      "runtime": {
+        "verifyScoreStd": 1.69,
+        "latencyP50Ms": 53220.0,
+        "successRate": 0.0,
+        "avgVerifyScore": 5.15,
+        "samples": 70
+      },
+      "cost": {
+        "costPerCallCny": 0.025451,
+        "avgInputTokens": 405.0,
+        "avgOutputTokens": 6330.0
+      }
+    },
+    "deepseek-v4-flash__max": {
+      "identityUnknown": false,
+      "baseModel": "deepseek-v4-flash",
+      "thinking": "max",
+      "stable": true,
+      "tier": "T1-pay-per-token",
+      "provider": "deepseek-official",
+      "vendorGroup": "deepseek",
+      "capabilities": {
+        "reasoning": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 10.0,
+          "samples": 41
+        },
+        "code": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.49,
+          "samples": 45
+        },
+        "chinese": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.3,
+          "samples": 41
+        },
+        "research": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.45,
+          "samples": 41
+        },
+        "instruction_following": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.65,
+          "samples": 41
+        },
+        "long_context": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.5,
+          "samples": 41
+        },
+        "tool_use": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 10.0,
+          "samples": 40
+        },
+        "creativity": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 8.07,
+          "samples": 40
+        },
+        "safety": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 10.0,
+          "samples": 40
+        }
+      },
+      "runtime": {
+        "verifyScoreStd": 1.57,
+        "latencyP50Ms": 59661.0,
+        "successRate": 0.91,
+        "avgVerifyScore": 8.03,
+        "samples": 343
+      },
+      "cost": {
+        "costPerCallCny": 0.02606,
+        "avgInputTokens": 1592.0,
+        "avgOutputTokens": 6863.0
+      }
+    },
+    "MiniMax-M3__off": {
+      "identityUnknown": false,
+      "baseModel": "MiniMax-M3",
+      "thinking": "off",
+      "stable": true,
+      "tier": "T0-free",
+      "provider": "minimax-cn",
+      "vendorGroup": "minimax",
+      "capabilities": {
+        "reasoning": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 10.0,
+          "samples": 41
+        },
+        "code": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 8.42,
+          "samples": 45
+        },
+        "chinese": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.8,
+          "samples": 41
+        },
+        "research": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 7.22,
+          "samples": 41
+        },
+        "instruction_following": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 8.45,
+          "samples": 41
+        },
+        "long_context": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 10.0,
+          "samples": 41
+        },
+        "tool_use": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.57,
+          "samples": 40
+        },
+        "creativity": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 8.75,
+          "samples": 40
+        },
+        "safety": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.88,
+          "samples": 40
+        }
+      },
+      "runtime": {
+        "verifyScoreStd": 1.66,
+        "latencyP50Ms": 12778.0,
+        "successRate": 0.51,
+        "avgVerifyScore": 6.4,
+        "samples": 518
+      },
+      "cost": {
+        "costPerCallCny": 0.0,
+        "avgInputTokens": 256.0,
+        "avgOutputTokens": 792.0
+      }
+    },
+    "MiniMax-M3__minimal": {
+      "identityUnknown": false,
+      "baseModel": "MiniMax-M3",
+      "thinking": "minimal",
+      "stable": true,
+      "tier": "T0-free",
+      "provider": "minimax-cn",
+      "vendorGroup": "minimax",
+      "capabilities": {
+        "reasoning": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 10.0,
+          "samples": 40
+        },
+        "code": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.02,
+          "samples": 44
+        },
+        "chinese": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.92,
+          "samples": 40
+        },
+        "research": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.67,
+          "samples": 40
+        },
+        "instruction_following": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 10.0,
+          "samples": 40
+        },
+        "long_context": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.85,
+          "samples": 40
+        },
+        "tool_use": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.67,
+          "samples": 39
+        },
+        "creativity": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 8.43,
+          "samples": 39
+        },
+        "safety": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 10.0,
+          "samples": 39
+        }
+      },
+      "runtime": {
+        "verifyScoreStd": 1.63,
+        "latencyP50Ms": 38203.0,
+        "successRate": 0.85,
+        "avgVerifyScore": 7.7,
+        "samples": 419
+      },
+      "cost": {
+        "costPerCallCny": 0.0,
+        "avgInputTokens": 720.0,
+        "avgOutputTokens": 3650.0
+      }
+    },
+    "MiniMax-M3__low": {
+      "identityUnknown": false,
+      "baseModel": "MiniMax-M3",
+      "thinking": "low",
+      "stable": true,
+      "tier": "T0-free",
+      "provider": "minimax-cn",
+      "vendorGroup": "minimax",
+      "capabilities": {
+        "reasoning": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.0,
+          "samples": 41
+        },
+        "code": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 8.88,
+          "samples": 45
+        },
+        "chinese": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.8,
+          "samples": 41
+        },
+        "research": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 7.7,
+          "samples": 41
+        },
+        "instruction_following": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 10.0,
+          "samples": 41
+        },
+        "long_context": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 10.0,
+          "samples": 41
+        },
+        "tool_use": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.1,
+          "samples": 40
+        },
+        "creativity": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 7.12,
+          "samples": 40
+        },
+        "safety": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.18,
+          "samples": 40
+        }
+      },
+      "runtime": {
+        "successRate": null,
+        "avgVerifyScore": null,
+        "samples": 0
+      },
+      "cost": {
+        "costPerCallCny": null,
+        "avgInputTokens": null,
+        "avgOutputTokens": null
       }
     },
     "MiniMax-M3__medium": {
+      "identityUnknown": false,
       "baseModel": "MiniMax-M3",
       "thinking": "medium",
+      "stable": true,
+      "tier": "T0-free",
       "provider": "minimax-cn",
       "vendorGroup": "minimax",
-      "tier": "T0",
-      "stable": true,
-      "identityUnknown": false,
       "capabilities": {
-        "reasoning": {"score": 8.5, "samples": 5},
-        "code": {"score": 7.5, "samples": 5},
-        "chinese": {"score": 9.0, "samples": 5},
-        "research": {"score": 8.0, "samples": 5},
-        "instruction_following": {"score": 8.5, "samples": 5},
-        "long_context": {"score": 8.0, "samples": 5},
-        "tool_use": {"score": 7.5, "samples": 5},
-        "creativity": {"score": 9.0, "samples": 5},
-        "safety": {"score": 8.5, "samples": 5}
+        "reasoning": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 10.0,
+          "samples": 40
+        },
+        "code": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 8.34,
+          "samples": 44
+        },
+        "chinese": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.93,
+          "samples": 40
+        },
+        "research": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.57,
+          "samples": 40
+        },
+        "instruction_following": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.47,
+          "samples": 40
+        },
+        "long_context": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 10.0,
+          "samples": 40
+        },
+        "tool_use": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.43,
+          "samples": 39
+        },
+        "creativity": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 8.6,
+          "samples": 39
+        },
+        "safety": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.9,
+          "samples": 39
+        }
+      },
+      "runtime": {
+        "verifyScoreStd": 1.7,
+        "latencyP50Ms": 33256.0,
+        "successRate": 0.71,
+        "avgVerifyScore": 6.72,
+        "samples": 544
+      },
+      "cost": {
+        "costPerCallCny": 0.0,
+        "avgInputTokens": 340.0,
+        "avgOutputTokens": 3432.0
+      }
+    },
+    "MiniMax-M3__high": {
+      "identityUnknown": false,
+      "baseModel": "MiniMax-M3",
+      "thinking": "high",
+      "stable": true,
+      "tier": "T0-free",
+      "provider": "minimax-cn",
+      "vendorGroup": "minimax",
+      "capabilities": {
+        "reasoning": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 10.0,
+          "samples": 40
+        },
+        "code": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 8.65,
+          "samples": 44
+        },
+        "chinese": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.92,
+          "samples": 40
+        },
+        "research": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 7.4,
+          "samples": 40
+        },
+        "instruction_following": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.35,
+          "samples": 40
+        },
+        "long_context": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.85,
+          "samples": 40
+        },
+        "tool_use": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.33,
+          "samples": 39
+        },
+        "creativity": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 7.98,
+          "samples": 37
+        },
+        "safety": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.8,
+          "samples": 39
+        }
+      },
+      "runtime": {
+        "verifyScoreStd": 3.16,
+        "latencyP50Ms": 22950.0,
+        "successRate": 0.5,
+        "avgVerifyScore": 5.0,
+        "samples": 56
+      },
+      "cost": {
+        "costPerCallCny": 0.0,
+        "avgInputTokens": null,
+        "avgOutputTokens": 3092.0
+      }
+    },
+    "glm-5.3-flash__minimal": {
+      "identityUnknown": false,
+      "baseModel": "glm-5.3-flash",
+      "thinking": "minimal",
+      "stable": true,
+      "tier": "T1-pay-per-token",
+      "provider": "zai-coding-cn",
+      "vendorGroup": "zai",
+      "capabilities": {
+        "code": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 4.94,
+          "samples": 8
+        },
+        "chinese": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.38,
+          "samples": 4
+        },
+        "creativity": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 5.67,
+          "samples": 3
+        },
+        "safety": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 5.0,
+          "samples": 2
+        },
+        "instruction_following": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 8.0,
+          "samples": 4
+        },
+        "long_context": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 10.0,
+          "samples": 4
+        },
+        "reasoning": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 10.0,
+          "samples": 4
+        },
+        "research": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.25,
+          "samples": 4
+        },
+        "tool_use": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.33,
+          "samples": 3
+        }
+      },
+      "runtime": {
+        "successRate": null,
+        "avgVerifyScore": null,
+        "samples": 0
+      },
+      "cost": {
+        "costPerCallCny": null,
+        "avgInputTokens": null,
+        "avgOutputTokens": null
+      }
+    },
+    "glm-5.3-flash__low": {
+      "identityUnknown": false,
+      "baseModel": "glm-5.3-flash",
+      "thinking": "low",
+      "stable": true,
+      "tier": "T1-pay-per-token",
+      "provider": "zai-coding-cn",
+      "vendorGroup": "zai",
+      "capabilities": {
+        "code": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 4.44,
+          "samples": 8
+        },
+        "chinese": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.38,
+          "samples": 4
+        },
+        "creativity": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 5.67,
+          "samples": 3
+        },
+        "safety": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 6.5,
+          "samples": 3
+        },
+        "instruction_following": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 8.5,
+          "samples": 4
+        },
+        "long_context": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 10.0,
+          "samples": 4
+        },
+        "reasoning": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.5,
+          "samples": 4
+        },
+        "research": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.75,
+          "samples": 4
+        },
+        "tool_use": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 10.0,
+          "samples": 3
+        }
+      },
+      "runtime": {
+        "successRate": null,
+        "avgVerifyScore": null,
+        "samples": 0
+      },
+      "cost": {
+        "costPerCallCny": null,
+        "avgInputTokens": null,
+        "avgOutputTokens": null
+      }
+    },
+    "glm-5.3-flash__medium": {
+      "identityUnknown": false,
+      "baseModel": "glm-5.3-flash",
+      "thinking": "medium",
+      "stable": true,
+      "tier": "T1-pay-per-token",
+      "provider": "zai-coding-cn",
+      "vendorGroup": "zai",
+      "capabilities": {
+        "code": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 4.44,
+          "samples": 8
+        },
+        "chinese": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.25,
+          "samples": 4
+        },
+        "creativity": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 5.67,
+          "samples": 3
+        },
+        "safety": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 5.0,
+          "samples": 2
+        },
+        "instruction_following": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 8.5,
+          "samples": 4
+        },
+        "long_context": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 10.0,
+          "samples": 4
+        },
+        "reasoning": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.0,
+          "samples": 4
+        },
+        "research": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.5,
+          "samples": 4
+        },
+        "tool_use": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 10.0,
+          "samples": 3
+        }
+      },
+      "runtime": {
+        "successRate": null,
+        "avgVerifyScore": null,
+        "samples": 0
+      },
+      "cost": {
+        "costPerCallCny": null,
+        "avgInputTokens": null,
+        "avgOutputTokens": null
+      }
+    },
+    "glm-5.3-flash__high": {
+      "identityUnknown": false,
+      "baseModel": "glm-5.3-flash",
+      "thinking": "high",
+      "stable": true,
+      "tier": "T1-pay-per-token",
+      "provider": "zai-coding-cn",
+      "vendorGroup": "zai",
+      "capabilities": {
+        "code": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 4.94,
+          "samples": 8
+        },
+        "chinese": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.5,
+          "samples": 4
+        },
+        "creativity": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 6.0,
+          "samples": 3
+        },
+        "safety": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 4.75,
+          "samples": 2
+        },
+        "instruction_following": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 8.5,
+          "samples": 4
+        },
+        "long_context": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 10.0,
+          "samples": 4
+        },
+        "reasoning": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 10.0,
+          "samples": 4
+        },
+        "research": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.75,
+          "samples": 4
+        },
+        "tool_use": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 10.0,
+          "samples": 3
+        }
+      },
+      "runtime": {
+        "successRate": null,
+        "avgVerifyScore": null,
+        "samples": 0
+      },
+      "cost": {
+        "costPerCallCny": null,
+        "avgInputTokens": null,
+        "avgOutputTokens": null
+      }
+    },
+    "glm-5.3-flash__max": {
+      "identityUnknown": false,
+      "baseModel": "glm-5.3-flash",
+      "thinking": "max",
+      "stable": true,
+      "tier": "T1-pay-per-token",
+      "provider": "zai-coding-cn",
+      "vendorGroup": "zai",
+      "capabilities": {
+        "code": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 4.94,
+          "samples": 8
+        },
+        "chinese": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.5,
+          "samples": 4
+        },
+        "creativity": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 5.83,
+          "samples": 3
+        },
+        "safety": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 5.0,
+          "samples": 2
+        },
+        "instruction_following": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 8.5,
+          "samples": 4
+        },
+        "long_context": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 10.0,
+          "samples": 4
+        },
+        "reasoning": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 10.0,
+          "samples": 4
+        },
+        "research": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 9.75,
+          "samples": 4
+        },
+        "tool_use": {
+          "interpolated": false,
+          "freshness": 1.0,
+          "score": 10.0,
+          "samples": 3
+        }
+      },
+      "runtime": {
+        "successRate": null,
+        "avgVerifyScore": null,
+        "samples": 0
+      },
+      "cost": {
+        "costPerCallCny": null,
+        "avgInputTokens": null,
+        "avgOutputTokens": null
       }
     }
-  },
-  "ingestMeta": {},
-  "runtimeFeedback": {}
+  }
 }

@@ -4,6 +4,35 @@ All notable changes to **Model Council** are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [15.9.0] - 2026-09-03
+
+Zero-to-council in 5 minutes: prebuilt data snapshot + credential flexibility
++ first-run wizard. No cold-start benchmark required.
+
+### Added
+
+- Prebuilt data snapshot: `capabilities.json` (18 model×thinking entries with
+  scores/samples/cost/latency, sanitized via `scripts/sanitize_snapshot.py`)
+  and `benchmark/golden/golden-set.json` (36 items). New users skip the
+  $15–25 first benchmark; `./scripts/first-bench.sh` remains for own scores.
+- `scripts/first_run.py` — first-run wizard (stdlib only): verifies python
+  version, data snapshot scale, credentials, offline tests and `judge --dry`;
+  `--init-credentials` writes `~/.model-council/credentials` (owner-only).
+  Exit 2 with exact fix instructions when keys are missing.
+- `scripts/sanitize_snapshot.py` — reproducible export of the maintainer
+  snapshot (whitelist fields, drops run linkage/timestamps/feedback,
+  skips unstable entries); run before each data-refresh release.
+- Four-level credential resolution (`orchestrator/config_loader.py`):
+  `MODEL_COUNCIL_CREDENTIALS` file > env vars > `~/.model-council/credentials`
+  > legacy `~/.dsh/.credentials.yaml`; helpful error when none found.
+- `tests/test_config_keys.py` — 6 items covering the resolution order.
+- README 5-minute quickstart (EN + 中文）.
+
+### Changed
+
+- `orchestrator/query_balance.py` reads credentials via `config_loader.api_keys()`
+  (removes the duplicated `~/.dsh` parsing).
+
 ## [15.8.0] - 2026-09-03
 
 Judge reliability + quota-aware throttling. (Includes the previously
