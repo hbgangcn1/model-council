@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "model-council"
-version = "15.6.0"
+version = "15.8.0"
 description = "Self-evolving, cost-aware multi-model convergent review system"
 readme = "README.md"
 license = "MIT"

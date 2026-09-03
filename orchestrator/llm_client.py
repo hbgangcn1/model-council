@@ -119,6 +119,16 @@ class LLMPermanentError(Exception):
         self.http_status = http_status
 
 
+class LLMQuotaExhaustedError(LLMPermanentError):
+    """额度用尽：余额/配额耗尽导致的限流，不应重试。
+
+    挂在 LLMPermanentError 下，所以 BaseLLMClient 的 except LLMPermanentError
+    分支天然直接上抛、零重试；CompositeClient 会继续试下一个 transport，
+    但同属配额耗尽的 vendor 会同样快速失败，不会烧时间。
+    下游靠消息前缀 "QUOTA_EXHAUSTED" 识别（见 dsh_bridge 分类器）。
+    """
+
+
 # ===================== Base class with retry + circuit breaker =====================
 
 

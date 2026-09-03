@@ -4,6 +4,48 @@ All notable changes to **Model Council** are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [15.8.0] - 2026-09-03
+
+Judge reliability + quota-aware throttling. (Includes the previously
+unreleased local v15.7 judge parallelism, now part of this snapshot.)
+
+### Added
+
+- `LLMQuotaExhaustedError` (`orchestrator/llm_client.py`) — subclasses
+  `LLMPermanentError`, so quota exhaustion fails fast with zero retries;
+  downstream code detects it via the `QUOTA_EXHAUSTED` message prefix.
+- `classify_bridge_error()` (`orchestrator/llm_transports/dsh_bridge.py`) —
+  offline-testable classifier splitting provider errors into `quota`
+  (MiniMax 1008/2056 + balance/quota keywords, incl. Chinese) vs `rate`
+  (1002/1039/1041/2045/429/Z.AI 1302/5xx) vs `unknown`; quota wins on ties.
+- Judge quota preflight + in-run fuse (`orchestrator/judge_drift.py`) —
+  free balance-snapshot preflight aborts before the first call when the 5h
+  window is empty; 3 consecutive `QUOTA_EXHAUSTED` abort the run with a
+  `quotaExhausted` output flag instead of burning ~20 minutes on retries.
+- Judge liveness gate + progress file (`orchestrator/judge_drift.py`) —
+  items submitted once and collected per pass; the run ends on completion or
+  two consecutive zero-progress passes (stragglers marked `stalled`), with
+  `max_runtime_s` kept only as a deadlock backstop. Per-item progress
+  (`stage`, `model@thinking`, done/total, ok/quota counts) is written
+  atomically to `judge-progress.json` for external polling.
+- `orchestrator/test_v158.py` — 28 offline regression items (classifier
+  matrix, fail-fast timing, finish-error parsing incl. quoted `[DONE]`
+  sentinel, stall liveness, quota fuse + progress callback).
+
+### Fixed
+
+- `finish.reason.kind == "error"` (e.g. `{event:"finish",
+  reason:{kind:"error", failure:{message:"429..."}}}`) is now surfaced and
+  classified instead of silently swallowed (previously produced empty-text
+  false successes).
+- SSE `data: "[DONE]"` (server JSON-stringifies the sentinel) no longer
+  crashes the event loop with `AttributeError`; non-object payloads are
+  skipped.
+- HTTP-layer 4xx (other than 429) from the bridge raise permanent errors
+  (quota body → quota error) instead of being retried as timeouts.
+- Judge scoring parallelism (ThreadPoolExecutor, 3 workers) replaces serial
+  per-item calls.
+
 ## [15.6.0] - 2026-XX-XX
 
 First public release. Extracted from internal use (originally developed as part
