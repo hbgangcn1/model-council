@@ -2,28 +2,22 @@
 
 ## Setup
 
-After cloning the repo and `pip install -e .`, create a working directory:
+After cloning the repo and `pip install -e .`, run the first-run wizard
+from the repo root (it checks the prebuilt data snapshot, credentials,
+offline tests and a free dry-run — no API cost):
 
 ```bash
-mkdir my-council-workspace
-cd my-council-workspace
+python scripts/first_run.py
 ```
 
-Initialize an empty capability archive and configuration:
+The repo ships a prebuilt snapshot (`capabilities.json`: 18 model×thinking
+entries, `benchmark/golden/golden-set.json`: 36 items), so the selector works
+out of the box. If keys are missing the wizard tells you exactly what to do
+(`export DEEPSEEK_API_KEY=...` or `first_run.py --init-credentials`).
 
-```bash
-python -m scripts.bootstrap_capabilities
-# Creates ./capabilities.json (empty), ./council-params.json (from template)
-```
-
-Edit `council-params.json` to add your provider credentials. By default, the
-LLM transport layer reads credentials from environment variables:
-
-```bash
-export DEEPSEEK_API_KEY="..."
-export MINIMAX_CN_API_KEY="..."
-export OPENROUTER_API_KEY="..."   # if using openrouter
-```
+Edit `council-params.json` to tune parameters (`python -m orchestrator.params
+--show` to inspect). Provider credentials are read from (first found wins):
+`MODEL_COUNCIL_CREDENTIALS` file > env vars > `~/.model-council/credentials`.
 
 ## First council run
 
@@ -37,16 +31,15 @@ python -m orchestrator.council_v14 \
 ```
 
 This will:
-1. Load `capabilities.json` (empty initially, will log a warning)
-2. Decompose the task into 2-3 subtasks
-3. For each subtask, select a model from the pool (any model that has been
-   benchmarked) and execute it
-4. Have a different model verify each output
+1. Load `capabilities.json` (prebuilt 18-entry snapshot ships with the repo)
+2. Decompose the task into 2-4 subtasks with dimension weights
+3. For each subtask, let the selector pick a model by capability score
+   (cross-vendor, no self-verify) and execute it
+4. Have a different-vendor model verify each output
 5. Synthesize the verified outputs into a final report
 
-Since the capability archive is empty, the selector will fall back to
-`defaults` (the lowest-cost model in the pool). To get useful selection, you
-need to run the benchmark first.
+To replace the shipped scores with your own measurements, run the benchmark
+(`./scripts/first-bench.sh`, 1-2h, ~$15-25) and ingest the results below.
 
 ## First benchmark run
 

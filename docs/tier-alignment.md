@@ -2,6 +2,17 @@
 
 > 对应元评审问题 17-21（`meta-review-2026-08-25.md`）：插值废除（全档位×全案例）、max_tokens 还原模型上限、档位协议与 host-bridge 主会话对齐（单一数据源）。
 > 状态：**方案细节（2026-08-25 maintainer 要求落盘），待审阅后动工**。
+>
+> **实施台账（v15.9 回填，替代"待动工"状态）**：
+> - 手填映射删除 ✅（`bench/config.py`、`config_loader.py` 的 budget/max_tokens 手填已删，注释可查）
+> - 插值废除 ✅（档案 `interpolated:true` 条目数为 0）
+> - 全量重跑 + 档案重建 ✅（rev 持续递增，caps_guard 校验）
+> - 模型池管理（Phase 0-C）✅（`model-pool.json` + 控制台 + 手动跑分）
+> - 单一 Python 源 ✅（`tier_bridge.py`：family 默认 wire + max_tokens 表）
+> - 插件生成 `model-tier-bridge.json` ✅（DSH 插件 v15.6 桥接，文件存在）
+> - **Python 消费该 JSON ❌（无代码读取它；`wire_for` 走 family 默认）**——机制半截子，
+>   现状以 `tier_bridge.py` 为准；T1（M3 wire）被 L3 服务端直调取代，不再单独解。
+> - Phase 1–5 去向见 `roadmap.md` 实施台账。
 
 ## 0. 问题与原则
 

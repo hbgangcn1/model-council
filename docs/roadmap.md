@@ -3,6 +3,15 @@
 > 来源：①第三次元评审问题清单 `meta-review-2026-08-25.md`（16 条，含主会话实证修正）；
 > ②后续六轮讨论共识（判停标准/墙钟/递归架构/selector/解析健壮性等，maintainer 逐条拍板）。
 > 本文件是「接下来要修改的内容」的唯一整合清单，实施时逐批勾销。
+>
+> **实施台账（v15.9 回填；v15.5 计划未线性执行，实际走 v15.6 L3 → v15.7–15.9 路径）**：
+> - Phase 0 ✅（桥接单源、手填删除、插值 0、归档、重跑 rev 递增、模型池管理；细节见 `tier-alignment.md` 台账）
+> - Phase 1 ✅（D1 判停：θ=9.5/δ=0.2/stalled 进 `terminator.py`；D2-B 异步化未建→ Phase 5）
+> - Phase 2 ✅（JSON 四层防线 `json_repair.py`；角色动态化：exec/verifier/synthesize 走 selector）
+> - Phase 3 ✅（vendorGroup：verifier 与执行者跨厂商互斥，档案字段可查）
+> - Phase 4 ⚠️ 部分（分维度漂移 `dimDrift` ✅；人工锚周推 ✅ 仅 DSH；judge 任期/影子 challenger/考卷 TTL 未建）
+> - Phase 5 ❌ 未建（异步化无；24h 自动校准无；以现有 `--check` + 定时人工看代之）
+> - D7 selector 分层/UCB：以代码现状为准（diversity 有，不确定性加权无），不再追 roadmap 口径。
 
 ## 一、已拍板的决策（讨论共识）
 

@@ -75,7 +75,7 @@ unreleased local v15.7 judge parallelism, now part of this snapshot.)
 - Judge scoring parallelism (ThreadPoolExecutor, 3 workers) replaces serial
   per-item calls.
 
-## [15.6.0] - 2026-XX-XX
+## [15.6.0] - 2026-09-01
 
 First public release. Extracted from internal use (originally developed as part
 of DeepSeek Harness integrations); refactored into a standalone, framework-agnostic
