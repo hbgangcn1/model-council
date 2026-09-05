@@ -67,6 +67,7 @@ DEFAULTS = {
         "allowlist": [],           # P0-2：候选池 allowlist（空=不启用；填 baseModel 白名单）
         "staticEligibilityPreFilter": True,  # P0-2：静态不合格候选（identityUnknown/stable=false/自验禁令）在评分前剔除，只记一条 summary 事件
         "rankNormalize": True,     # v15.3：能力分 rank 归一化（同质化治理，见 selector.build_rank_table）
+        "minVendors": 3,           # v15.10：vendor 数硬校验阈值（ADR-002 跨厂商互验硬假设；<N 直接抛错阻断，见 vendor_guard.assert_vendor_min）
     },
     # 终止策略
     "terminator": {

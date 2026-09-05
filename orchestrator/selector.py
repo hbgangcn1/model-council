@@ -90,7 +90,17 @@ def load_capabilities() -> dict:
     p = BASE / "capabilities.json"
     if not p.exists():
         return {"schemaVersion": 2, "revision": 0, "models": {}, "dimensions": []}
-    return json.loads(p.read_text(encoding="utf-8"))
+    doc = json.loads(p.read_text(encoding="utf-8"))
+    # v15.10：配置加载时 vendor 数硬校验（ADR-002 跨厂商互验硬假设）。
+    # 候选池 < min_vendors 静默自评风险，详见 vendor_guard.assert_vendor_min。
+    try:
+        from . import vendor_guard  # 软引用：测试环境缺模块不影响 load
+        vendor_guard.assert_vendor_min(doc, source="selector")
+    except ImportError:
+        pass
+    except vendor_guard.VendorMinError:
+        raise  # 透传硬校验异常，配置加载期 fail-fast
+    return doc
 
 def load_pricing() -> dict:
     p = BASE / "pricing-profiles.json"

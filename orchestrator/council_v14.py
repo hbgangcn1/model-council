@@ -300,6 +300,10 @@ def run_council(task: str, tier: str = "standard", mode: str = "report",
                        exit_code=0)
     # v15.5 3C：decompose 角色动态化——按能力向量从池中选低思考档候选，回退默认
     caps = selector.load_capabilities()
+    # v15.10：run 入口 vendor 数硬校验（双重保险——selector.load_capabilities 已校验，
+    # 此处再加一次防止未来直接传 caps 绕过 load；用户面 fail-fast，错误文案带上下文）。
+    from . import vendor_guard
+    vendor_guard.assert_vendor_min(caps, source="council")
     caps_revision = caps.get("revision")
     role_cid = _pick_role(caps, DECOMPOSE_WV, "decompose")
     decomposer = tuple(role_cid.rsplit("__", 1)) if role_cid else DECOMPOSER_MODEL
