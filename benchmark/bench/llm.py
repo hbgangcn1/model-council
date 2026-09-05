@@ -418,9 +418,11 @@ def _dsh_bridge_tool_loop(model, level, prompt, max_tokens,
                 elif isinstance(fr, str):
                     finish_kind = fr
 
-        # 检查 timeout/error
+        # 检查 timeout/error（meta 键以 _stream_sse_lines docstring 为准：
+        # timeout_kind/http_status/http_body/elapsed_s/n_events——没有 bridge_error，
+        # 那是历史残留键，全仓已无构造处，别加回来）
         if meta.get("timeout_kind") and meta.get("timeout_kind") not in ("stop", None):
-            raise Exception(f"host-bridge {meta.get('timeout_kind')}: {meta.get('bridge_error') or meta.get('http_body') or 'unknown'}")
+            raise Exception(f"host-bridge {meta.get('timeout_kind')}: {meta.get('http_body') or 'unknown'}")
 
         # v15.6：provider 错误分流——429 限流抛 _DshRateLimitError（退避重试），其它直接抛
         if finish_kind == "error" or (last_error and not text and not tool_calls):
