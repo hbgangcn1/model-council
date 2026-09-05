@@ -1,0 +1,29 @@
+{
+  "_comment": "Dev minimal fixture. Same schema as runtime ~/.dsh/council/model-tier-bridge.json; used only when (a) PATH_BRIDGE_FILE unset AND (b) runtime bridge missing AND (c) import-from-clean-checkout. 2 models × 2-3 levels is enough to verify the contract end-to-end.",
+  "_schema": "model-tier-bridge",
+  "models": {
+    "dev-test-model-a": {
+      "provider": "dev-test-provider",
+      "vendorGroup": "dev-vendor-a",
+      "contextWindow": 128000,
+      "capabilityMaxTokens": 8192,
+      "defaultMaxTokens": 4096,
+      "levels": [
+        {"level": "off", "wire": {"temperature": 0.0, "max_tokens": 4096}},
+        {"level": "low", "wire": {"temperature": 0.3, "max_tokens": 4096}},
+        {"level": "high", "wire": {"temperature": 0.7, "max_tokens": 8192}}
+      ]
+    },
+    "dev-test-model-b": {
+      "provider": "dev-test-provider",
+      "vendorGroup": "dev-vendor-b",
+      "contextWindow": 64000,
+      "capabilityMaxTokens": 4096,
+      "defaultMaxTokens": 2048,
+      "levels": [
+        {"level": "off", "wire": {"temperature": 0.0, "max_tokens": 2048}},
+        {"level": "low", "wire": {"temperature": 0.2, "max_tokens": 2048}}
+      ]
+    }
+  }
+}
