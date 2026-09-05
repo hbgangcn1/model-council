@@ -62,19 +62,19 @@ Windows without DSH: `schtasks /Create /TN council-nightly /SC DAILY /ST 04:30 /
 
 ## 2. Data files — who writes what
 
-| File | Writer | Reader | Commit? |
-|---|---|---|---|
-| `capabilities.json` | bench ingest / self-evolve apply / `sanitize_snapshot.py` (release) | selector, every run | **yes — sanitized snapshot only** (regenerate via script, never hand-edit) |
-| `council-params.json` | you (all knobs; `params.py --show` to inspect) | everything | yes (your tuning) |
-| `balance-snapshot.json` | `query_balance.py` (60s cache) | selector quota factor, console | no (account data) |
-| `judge-drift.json`, `judge-progress.json` | `judge_drift.py` | console card, metrics | no |
-| `cost-drift.json`, `cost-reconcile-events.jsonl` | `cost_calibrate.py` | console, reconcile | no |
-| `evals/pending-runtime-diff.json` | every council run | `update_capabilities --apply` | no |
-| `evals/runtime-feedback.jsonl` | every council run | nightly apply | no |
-| `runs/<ts>/` | every council run | reports, audits, replays | no |
-| `benchmark/scores/`, `responses/`, `results/` | bench runs | ingest | no |
-| `auto-evolve-state.json` | `auto_evolve.py` (fuse state) | pre-run check | no |
-| `exchange-rates*.json*` | fx fetch | cost accounting | no |
+| File | Writer | Reader | Commit? | Retention |
+|---|---|---|---|---|
+| `capabilities.json` | bench ingest / self-evolve apply / `sanitize_snapshot.py` (release) | selector, every run | **yes — sanitized snapshot only** (regenerate via script, never hand-edit) | n/a (source) |
+| `council-params.json` | you (all knobs; `params.py --show` to inspect) | everything | yes (your tuning) | n/a (source) |
+| `balance-snapshot.json` | `query_balance.py` (60s cache) | selector quota factor, console | no (account data) | 24h cache TTL (in-file) |
+| `judge-drift.json`, `judge-progress.json` | `judge_drift.py` | console card, metrics | no | judge-progress: weekly rotate |
+| `cost-drift.json`, `cost-reconcile-events.jsonl` | `cost_calibrate.py` | console, reconcile | no | drift: 30 days; events: 90 days |
+| `evals/pending-runtime-diff.json` | every council run | `update_capabilities --apply` | no | overwritten each `--pending` |
+| `evals/runtime-feedback.jsonl` | every council run | nightly apply | no | **90 days (default); older rows archived to `evals/archive/YYYY-MM.jsonl`** (§11) |
+| `runs/<ts>/` | every council run | reports, audits, replays | no | keep latest 30 runs; older = `tar.gz` to `runs/archive/` |
+| `benchmark/scores/`, `responses/`, `results/` | bench runs | ingest | no | per-run subdirs (rotate yearly) |
+| `auto-evolve-state.json` | `auto_evolve.py` (fuse state) | pre-run check | no | 7-day fuse window |
+| `exchange-rates*.json*` | fx fetch | cost accounting | no | daily fetch + last-good fallback |
 
 Rule of thumb: **if a script writes it on a schedule, it is not source.**
 Source = code + `config/*.example.json` + sanitized snapshot. Everything else
@@ -192,6 +192,85 @@ Honest boundary. Everything above runs from this repo **except**:
 4. CHANGELOG entry + bump `orchestrator/__init__.py` + `pyproject.toml`.
 5. Commit; push after data review (scores are public once pushed).
 
+## 11. Runtime feedback retention
+
+`evals/runtime-feedback.jsonl` is appended by every council run (24–50 rows
+per day) and full-loaded by `update_capabilities.py` every night. Without
+rotation it grows by 8–18K rows per year — three years from now the nightly
+load reads tens of MB of ancient history the model will never use. This
+section is the policy.
+
+**Defaults** (overridable via CLI flag):
+
+- `retention_days = 90` — rows older than this are archived
+- `archive_dir = evals/archive/` — per-month files `YYYY-MM.jsonl`
+- `feedback = evals/runtime-feedback.jsonl` — the file every council run writes
+
+**Tool**: `scripts/archive-feedback.py`
+
+```bash
+# Dry-run (default): print plan, do not touch anything
+python scripts/archive-feedback.py
+
+# Real archive: write new source file + append per-month files
+python scripts/archive-feedback.py --apply
+
+# Override retention window
+python scripts/archive-feedback.py --retention-days 60 --apply
+
+# Test with a fixed "now"
+python scripts/archive-feedback.py --now 2026-09-05T00:00:00Z --apply
+```
+
+**Reconciliation guarantees** (this is the part you actually care about):
+
+- **Pre-write**: `total == kept + expired` is enforced by the algorithm (every
+  row goes to exactly one bucket: keep, expire-by-month, or conservative-keep
+  for unparseable / no-`ts` rows).
+- **Post-write per archive file**: each `YYYY-MM.jsonl` is checked:
+  `post_count == pre_count + len(items)`. Mismatch → `ArchiveError`, source
+  file is **not** replaced (atomic write via `tmp+rename` is gated behind this
+  check).
+- **Post-write source file**: the new source file is line-counted before
+  the atomic replace; mismatch → `ArchiveError`, source unchanged.
+- **Any OSError** during the atomic replace → `ArchiveError`, tmp file is
+  cleaned up, source file is unchanged.
+- **Conservative defaults**: rows without `ts` or with an unparseable `ts`
+  are **kept**, never archived. Better to keep noise than to lose signal.
+
+**Where to put it in the daily chain** (§1):
+
+The most useful slot is **before** `update_capabilities --apply` at 04:30,
+so the nightly fusion reads a thinner source. Recommended cron snippet
+(Linux; for Windows use `schtasks` per §1):
+
+```cron
+25 4 * * * cd /path/to/model-council && python scripts/archive-feedback.py --apply >> ops.log 2>&1
+```
+
+(The `--apply` is intentional — silent skip on no-op, exit code 2 on
+reconciliation failure which the cron logs will catch.)
+
+**Audit / replay**: archived rows stay valid JSONL, one row per line, same
+schema as the live file. To re-load a window of history:
+
+```bash
+cat evals/archive/2026-06.jsonl evals/archive/2026-07.jsonl evals/archive/2026-08.jsonl \
+  | python -c "import json,sys; print(sum(1 for l in sys.stdin if l.strip()))"
+# → 1247 rows from those three months
+```
+
+**What this does NOT do**:
+
+- Does not touch `evals/pending-runtime-diff.json` (overwritten each
+  `--pending`, lives one cycle).
+- Does not delete archived rows (intentional — append-only, audit-friendly;
+  if you want hard deletion, run `find evals/archive -name '*.jsonl' -mtime
+  +365 -delete` on your own schedule, gated by your disk budget).
+- Does not change `update_capabilities.py` — it still full-loads the
+  (now-trimmed) source file. The savings come from the trim, not from any
+  change to the reader.
+
 ---
 
 # 中文版运维手册
@@ -247,19 +326,19 @@ cron 示例（Linux；日志就是审计）：
 
 ## 2. 数据文件：谁写谁读
 
-| 文件 | 写 | 读 | 提交？ |
-|---|---|---|---|
-| `capabilities.json` | 跑分摄入/自进化落盘/发版脱敏脚本 | 每次开会的 selector | **提交——只许脱敏快照**（用脚本生成，永不手改） |
-| `council-params.json` | 你（全部开关；`params.py --show` 查看） | 所有模块 | 提交（你的调参） |
-| `balance-snapshot.json` | `query_balance.py`（60 秒缓存） | selector 额度因子、控制台 | 不提交（账户数据） |
-| `judge-drift.json`、`judge-progress.json` | `judge_drift.py` | 控制台卡片、metrics | 不提交 |
-| `cost-drift.json`、`cost-reconcile-events.jsonl` | `cost_calibrate.py` | 控制台、对账 | 不提交 |
-| `evals/pending-runtime-diff.json` | 每次开会 | `update_capabilities --apply` | 不提交 |
-| `evals/runtime-feedback.jsonl` | 每次开会 | 每晚落盘 | 不提交 |
-| `runs/<时间>/` | 每次开会 | 报告、审计、复盘 | 不提交 |
-| `benchmark/scores/`、`responses/`、`results/` | 跑分 | 摄入 | 不提交 |
-| `auto-evolve-state.json` | `auto_evolve.py`（熔断状态） | 跑前预检 | 不提交 |
-| `exchange-rates*.json*` | 汇率抓取 | 成本核算 | 不提交 |
+| 文件 | 写 | 读 | 提交？ | 保留期 |
+|---|---|---|---|---|
+| `capabilities.json` | 跑分摄入/自进化落盘/发版脱敏脚本 | 每次开会的 selector | **提交——只许脱敏快照**（用脚本生成，永不手改） | n/a（源码） |
+| `council-params.json` | 你（全部开关；`params.py --show` 查看） | 所有模块 | 提交（你的调参） | n/a（源码） |
+| `balance-snapshot.json` | `query_balance.py`（60 秒缓存） | selector 额度因子、控制台 | 不提交（账户数据） | 文件内 24h 缓存 TTL |
+| `judge-drift.json`、`judge-progress.json` | `judge_drift.py` | 控制台卡片、metrics | 不提交 | judge-progress 周轮换 |
+| `cost-drift.json`、`cost-reconcile-events.jsonl` | `cost_calibrate.py` | 控制台、对账 | 不提交 | drift 30 天；events 90 天 |
+| `evals/pending-runtime-diff.json` | 每次开会 | `update_capabilities --apply` | 不提交 | 每次 `--pending` 覆盖 |
+| `evals/runtime-feedback.jsonl` | 每次开会 | 每晚落盘 | 不提交 | **90 天（默认）；更早按月归档到 `evals/archive/YYYY-MM.jsonl`**（§11） |
+| `runs/<时间>/` | 每次开会 | 报告、审计、复盘 | 不提交 | 留最近 30 次；更早 `tar.gz` 到 `runs/archive/` |
+| `benchmark/scores/`、`responses/`、`results/` | 跑分 | 摄入 | 不提交 | 每跑次子目录（年度轮换） |
+| `auto-evolve-state.json` | `auto_evolve.py`（熔断状态） | 跑前预检 | 不提交 | 7 天熔断窗 |
+| `exchange-rates*.json*` | 汇率抓取 | 成本核算 | 不提交 | 每日抓取 + 最近一次成功值兜底 |
 
 一句话：**定时任务写出来的东西都不是源码。** 源码 = 代码 + `config/*.example.json` +
 脱敏快照，其余都是排气。
@@ -372,3 +451,72 @@ python -m orchestrator.fx_status               # 0 正常/黄灯，2 停机
 3. `python -m pytest orchestrator tests benchmark/test_ingest.py benchmark/test_regression_gate.py benchmark/test_golden_guard.py -q`
 4. CHANGELOG + `orchestrator/__init__.py` + `pyproject.toml` 升版本。
 5. 提交；数据过目后再 push（分数推出去就是公开的）。
+
+## 11. 反馈保留策略
+
+`evals/runtime-feedback.jsonl` 每次开会都追加（每天 24–50 行），
+每晚 `update_capabilities.py` 全文加载融合能力档案。不轮换的话一年涨
+8–18K 行，三年后每晚多读几十 MB 历史——模型永远用不上。这节讲治理策略。
+
+**默认值**（CLI 可覆盖）：
+
+- `retention_days = 90` — 超过这个天数的行才归档
+- `archive_dir = evals/archive/` — 按月归档 `YYYY-MM.jsonl`
+- `feedback = evals/runtime-feedback.jsonl` — 每次开会写入的文件
+
+**工具**：`scripts/archive-feedback.py`
+
+```bash
+# dry-run（默认）：打印计划，不动文件
+python scripts/archive-feedback.py
+
+# 实际归档：写新源文件 + 追加按月归档
+python scripts/archive-feedback.py --apply
+
+# 自定义保留窗口
+python scripts/archive-feedback.py --retention-days 60 --apply
+
+# 测试用固定“今天”
+python scripts/archive-feedback.py --now 2026-09-05T00:00:00Z --apply
+```
+
+**对账保证**（这是重点）：
+
+- **写前**：`total == kept + expired` 算法强制——每行只进一个桶（保留 /
+  按月过期 / 保守保留——JSON 解析错或无 `ts` 字段的行）。
+- **写后按归档文件**：每个 `YYYY-MM.jsonl` 都要查 `post_count ==
+  pre_count + len(items)`，不等则 `ArchiveError`，源文件不替换（原子写
+  `tmp+rename` 在对账后才走）。
+- **写后源文件**：新源文件在原子替换前行数必须对得上，否则 `ArchiveError`，
+  源文件不变。
+- **任何 OSError**（原子替换阶）→ `ArchiveError`，tmp 清理，源文件不变。
+- **保守默认**：无 `ts` 或 `ts` 格式错的行**永远保留**不归档。丢了信号不如
+  留噪声。
+
+**上哪纳进日常链**（§1）：
+
+最有用的位置是 **04:30 `update_capabilities --apply` 之前**——这样每晚
+融合读的是更瘦的源。Linux cron 示例（Windows 用 `schtasks`，同 §1）：
+
+```cron
+25 4 * * * cd /path/to/model-council && python scripts/archive-feedback.py --apply >> ops.log 2>&1
+```
+
+（`--apply` 是故意的——无操作时静默跳过；对账失败退出码 2，cron 日志会留下。）
+
+**审计/回放**：归档行仍是合法 JSONL，每行一条，schema 与在用文件一致。
+要回看某窗历史：
+
+```bash
+cat evals/archive/2026-06.jsonl evals/archive/2026-07.jsonl evals/archive/2026-08.jsonl \
+  | python -c "import json,sys; print(sum(1 for l in sys.stdin if l.strip()))"
+# → 这三个月共 1247 行
+```
+
+**不做什么**：
+
+- 不动 `evals/pending-runtime-diff.json`（每次 `--pending` 覆盖，活一轮）。
+- 不删归档行（故意 append-only，便于审计；真要硬删，备份+自己设周期跑
+  `find evals/archive -name '*.jsonl' -mtime +365 -delete`，按你磁盘预算）。
+- 不改 `update_capabilities.py`——它仍全文加载（已瘦身的）源文件。节省
+  来自裁剪，不来自改动读取端。
