@@ -74,13 +74,21 @@ _RATE_KEYWORDS = (
     "server busy",
     "overloaded",
 )
+# 空回复：模型正常结束但零内容块（pi-ai EMPTY_RESPONSE，如静默拒答；偶发退化空包）。
+# 与 quota/rate 文本无交集，独立分类、可短退避重试（与 pi-ai 默认重试策略一致）。
+_EMPTY_MARKERS = (
+    "completed response with no content",
+    "EMPTY_RESPONSE",
+)
 
 
 def classify_bridge_error(text: str) -> str:
-    """把 provider 错误文本分成 quota（额度用尽，不重试）/ rate（可重试）/ unknown。
+    """把 provider 错误文本分成 quota（额度用尽，不重试）/ rate（可重试）/
+    empty（空回复，可短退避重试）/ unknown。
 
     纯函数，可离线单测。额度优先：额度文案里常顺带出现 429 字样，
     先判额度再判速率，避免把"额度用尽"误判成"普通限流去重试"。
+    empty 独立于 quota/rate（文本无交集），放最后不影响既有优先级。
     """
     low = (text or "").lower()
     if any(c in text for c in _QUOTA_CODES) or any(k in low for k in _QUOTA_KEYWORDS):
@@ -95,16 +103,21 @@ def classify_bridge_error(text: str) -> str:
         k in low for k in ("internal error", "server error", "service unavailable", "timeout", "timed out")
     ):
         return "rate"
+    if any(m in text for m in _EMPTY_MARKERS):
+        return "empty"
     return "unknown"
 
 
 def _raise_classified(prefix: str, raw: str, http_status=None):
-    """按分类抛对应用错：quota→不重试，rate→退避重试，unknown→维持旧行为（永久错）。"""
+    """按分类抛对应用错：quota→不重试，rate→退避重试，empty→短退避重试，
+    unknown→维持旧行为（永久错）。"""
     kind = classify_bridge_error(raw)
     if kind == "quota":
         raise LLMQuotaExhaustedError(f"QUOTA_EXHAUSTED: {prefix}{raw[:300]}", http_status=http_status)
     if kind == "rate":
         raise LLMRetryableError(f"{prefix}{raw[:300]}", retry_after_s=30.0)
+    if kind == "empty":
+        raise LLMRetryableError(f"{prefix}{raw[:300]}", retry_after_s=5.0)
     raise LLMPermanentError(f"{prefix}{raw[:300]}", http_status=http_status)
 
 
