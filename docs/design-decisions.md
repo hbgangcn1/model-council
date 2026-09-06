@@ -514,6 +514,8 @@ planning → decomposed → [round_r: assigning → reviewing → verifying → 
 
 **host-bridge 插件**：`host-bridge plugin`（host `index.js` + 浏览器 `client.js`）——工具 `run_council`/`council_status`；HTTP `/api/council/state|settings|run|guards` + `/metrics`（Prometheus）；侧边栏卡片 + 设置页六 Tab 控制台；每日定时：09:30 汇率（v15.4 三级 fallback）+ 04:00 成本对账 + 04:30 judge 漂移（v15.4 后接自动 apply + 金标 evolve）+ 02:00 换题检测（v15.4 新增）。
 
+> 现状注脚（2026-09-06，历史正文不动）：控制台现为**五 Tab**；`/api/council/guards` 与 `/api/council/model-pool` 端点已随插件代码整理移除（增删模型改走 capabilities 直写 + `ds-models` 下拉数据源，`llm-stream` 桥保留）。上面“六 Tab / guards 端点 / model-pool 端点”记的是 v15.5 时快照。
+
 ## 10. 实施路线（每阶段可独立验证、可回滚）
 
 ### 阶段 0 详细定义：最小可信基准 v2.1
@@ -865,6 +867,8 @@ planning → decomposed → [round_r: assigning → reviewing → verifying → 
 31. **删除模型（自动为主）**：①手动删除 = 从池移除，档案成绩保留只读；②**host-bridge 删模型 → 自动同步删除**：插件启动 + 模型目录变更时比对，池成员不在 host-bridge 目录即自动退役（成绩保留只读、审计事件），控制台直接消失不标红（maintainer 拍板）。
 32. **与 G-20 衔接**：新模型入池协议更新为「手动加入（全档位）→ 手动跑分得初分 → 参与选择（初分+置信区间+厂商内 challenger）」，取代「必先跑 benchmark 得初分再入池」的旧表述。
 33. **UI 三决策（2026-08-25 shape 定稿，见 `ui-model-pool-brief.md`）**：①列表 = 模型分组行 + 可展开档位子行；②stable 切换按钮退役（成员身份由池名单唯一决定）；③退役模型 Tab② 完全隐藏、审计事件表可见。Operate 模式，沿用 ccl 样式 + DSW tokens + SVG 雷达图，不动其他五 Tab。
+
+> 现状注脚（2026-09-06，历史正文不动）：J-22 插件桥自动生成器已随插件代码丢失，`model-tier-bridge.json` 改手工维护（见文件头 `_comment` 铁律：wire 填 UI 档位拼写）；K-28 的 `model-pool.json` 独立名单未落地——成员准入现以 capabilities 档案条目为准（增删走控制台 capabilities 直写），`stable`/`identityUnknown` 双标记仍在 selector 预过滤中生效。上面“自动生成 / pool.json 第一层”记的是 v15.5 时方案。
 
 ### v15.5 对 v15.4/v15.3/v15.2 的修订
 

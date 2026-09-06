@@ -59,9 +59,10 @@ decompose（维度权重向量）
 | Stub | 配错时给明确报错，不静默 |
 
 错误语义：额度用尽（`LLMQuotaExhaustedError`）零重试直接上抛；
-429/5xx 退避重试；成功/失败回调进 selector 熔断器。档位 wire 拼写与
-max_tokens 取自 `tier_bridge` 单一源（公开版为 family 默认实现，详见
-`tier-alignment.md` 状态说明）。
+429/5xx 退避重试；空回复（`EMPTY_RESPONSE`，模型正常结束但零内容块，如静默
+拒答）短退避重试；其余 unknown 按永久错；成功/失败回调进 selector 熔断器。
+档位 wire 拼写与 max_tokens 取自 `tier_bridge` 单一源（公开版为 family 默认
+实现，详见 `tier-alignment.md` 状态说明）。
 
 ## 成本（ADR-001）
 
@@ -81,7 +82,7 @@ model-council/
 ├── benchmark/          # 跑分管线 + 金标集 + 摄入审批 + 自进化
 ├── config/             # *.example.json 参数/价格模板
 ├── docs/               # 本目录（operations.md 是运维入口）
-├── scripts/            # first_run.py / first-bench.sh / sanitize_snapshot.py
+├── scripts/            # first_run.py / first-bench.sh / sanitize_snapshot.py / archive-feedback.py（feedback retention，见 operations §11）
 ├── tests/              # pytest 风格测试
 ├── capabilities.json   # 脱敏启动快照（你的实时改动不提交，见 operations §2）
 └── council-params.json # 全部开关（`params.py --show` 查看）
@@ -89,6 +90,47 @@ model-council/
 
 源码/排气二分法：定时任务写出来的东西（runs/、快照、事件流、scores/）
 都不是源码，不提交。运维整环见 `operations.md`。
+
+## Capability archive schema
+
+`capabilities.json`（`schemaVersion: 2`，`revision` 单调递增）：
+
+```json
+{
+  "schemaVersion": 2,
+  "revision": 22,
+  "dimensions": ["reasoning", "code", "chinese", "research",
+    "instruction_following", "long_context", "tool_use",
+    "creativity", "safety"],
+  "models": {
+    "<baseModel>__<thinking>": {
+      "baseModel": "deepseek-v4-pro",
+      "thinking": "high",
+      "provider": "deepseek-official",
+      "vendorGroup": "deepseek",
+      "tier": "T1-pay-per-token",
+      "stable": true,
+      "identityUnknown": false,
+      "capabilities": {
+        "<dim>": {"score": 0-10, "samples": 0[+], "freshness": 0-1,
+                  "interpolated": false,
+                  "_source_run_ids": ["R1", "C3"]}
+      },
+      "runtime": {"avgVerifyScore": 0-10, "successRate": 0-1,
+                  "samples": 0[+], "latencyP50Ms": 0[+],
+                  "lastSeenOK": "ISO-8601"},
+      "cost": {"avgInputTokens": 0[+], "avgOutputTokens": 0[+],
+               "costPerCallCny": 0.0[+]}
+    }
+  }
+}
+```
+
+- 主键 `model@thinking`（斜杠编码为 `--`）；分数一律绝对分 0–10，
+  选择时才做 rank 归一化（见 `selector.build_rank_table`，百分制，第一名 100）。
+- `stable=false` / `identityUnknown=true` 的条目在评分前预过滤，不参选。
+- 写操作永远走：pending diff → 人工审批 → `--apply`
+ （baseHash 校验 + revision 单调 + `caps_guard` 结构校验）。
 
 ## 审计命令
 

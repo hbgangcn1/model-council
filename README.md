@@ -94,7 +94,10 @@ The repo ships a prebuilt snapshot — 18 capability entries, 36 golden items,
 ### Configure
 
 Model Council needs:
-1. **At least 2 LLM providers** with API keys (cross-vendor verification).
+1. **At least 3 LLM providers from different vendors** with API keys
+   (cross-vendor verification is a hard startup gate: `orchestrator/vendor_guard.py`
+   refuses to run with fewer than 3 distinct `vendorGroup`s;
+   default `selection.minVendors: 3`).
    Three ways (first found wins): `MODEL_COUNCIL_CREDENTIALS=/path/to/file`,
    env vars (`DEEPSEEK_API_KEY`, `MINIMAX_CN_API_KEY`, `*_COMPAT_*`),
    or `~/.model-council/credentials` (`KEY: value` per line).
@@ -274,7 +277,9 @@ python -m orchestrator.council_v14 --task "评审这个设计决策" --tier fast
 ### 配置
 
 Model Council 需要：
-1. **至少 2 个 LLM provider** 的 API key（跨厂商验证）。
+1. **至少 3 家不同厂商的 LLM provider** 的 API key（跨厂商验证是启动硬门禁：
+   `orchestrator/vendor_guard.py`，vendorGroup 去重不足 3 家直接拒绝运行；
+   默认 `selection.minVendors: 3`）。
    三种给法（按优先级）：`MODEL_COUNCIL_CREDENTIALS=/path/to/file`、
    环境变量（`DEEPSEEK_API_KEY`、`MINIMAX_CN_API_KEY`、` *_COMPAT_*`）、
    或 `~/.model-council/credentials`（每行 `KEY: value`）。

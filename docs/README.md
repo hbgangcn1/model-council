@@ -30,6 +30,10 @@ is to explain *why*, not *what* (the *what* lives in code).
 - [ADR-003: Self-evolve loop](adr/003-self-evolve.md) — every run writes one
   feedback row; nightly job rolls signals back into capability archive under
   maintainer-approved pending diffs
+- [ADR-004: LLM client abstraction](adr/004-llm-client-abstraction.md) — one
+  `LLMClient` protocol with pluggable transports (DSH bridge /
+  OpenAI-compat / Anthropic-compat / fail-closed Stub); provider errors are
+  classified quota / rate / empty / unknown with matching retry semantics
 
 ## What this documentation does NOT cover
 

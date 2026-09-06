@@ -9,9 +9,13 @@
 > - 全量重跑 + 档案重建 ✅（rev 持续递增，caps_guard 校验）
 > - 模型池管理（Phase 0-C）✅（`model-pool.json` + 控制台 + 手动跑分）
 > - 单一 Python 源 ✅（`tier_bridge.py`：family 默认 wire + max_tokens 表）
-> - 插件生成 `model-tier-bridge.json` ✅（DSH 插件 v15.6 桥接，文件存在）
-> - **Python 消费该 JSON ❌（无代码读取它；`wire_for` 走 family 默认）**——机制半截子，
->   现状以 `tier_bridge.py` 为准；T1（M3 wire）被 L3 服务端直调取代，不再单独解。
+> - 桥文件存在 ✅（`model-tier-bridge.json`；原 DSH 插件 v15.6 自动生成器
+>   已随插件代码丢失，2026-09-06 起手工维护，见文件头 `_comment`）
+> - **Python 消费该 JSON ✅（2026-09 起：`benchmark/bench/config.py` 全量读它
+>   做候选枚举 + wire + maxTokens；`orchestrator` 侧仍走 `tier_bridge.py`
+>   stub）**——机制接上了，
+>   现状：bench 以桥文件为准；orchestrator 以 `tier_bridge.py` 为准；T1（M3 wire）已解
+>   （effort 直译，跑分实证通过），不再单独列。
 > - Phase 1–5 去向见 `roadmap.md` 实施台账。
 
 ## 0. 问题与原则
@@ -32,7 +36,10 @@
 
 ## 1. 插件桥（单一数据源机制）
 
-**生成方**：`host-bridge plugin` 插件 `index.js`（宿主内，改动后重启 host-bridge 生效）。
+**生成方**：原为 `host-bridge plugin` 插件 `index.js`（宿主内，改动后重启
+host-bridge 生效）；自动生成器已随插件代码丢失，2026-09-06 起手工维护
+桥文件（DSH 配置变更后手工同步；消费方不变：Python orchestrator 与
+benchmark 启动时读一次，缓存到 run 结束）。
 **消费方**：Python orchestrator 与 benchmark（启动时读一次，缓存到 run 结束）。
 
 ### 1.1 桥文件 schema（`< user-data-dir >/model-tier-bridge.json`）
@@ -80,7 +87,11 @@
 
 - **DeepSeek**（已知，硬编码在桥生成器）：off→`thinking:{type:'disabled'}`；low/high/max→`thinking:{type:'enabled'}` + 官方顶层 `reasoning_effort` 同名值。来源 = host-bridge-llm-deepseek README（「low/high/max 以同名值序列化为官方顶层 reasoning_effort；off 序列化为 thinking.type: disabled」）。
 - **OpenRouter/ox-alpha**（已知）：settings.yaml `reasoningEfforts` 已声明 low/high/max 原样透传 + reasoning mandatory（无 off 档，off 回落最低档 low）。council 现有 3 档条目（low/high/max）与之相符。
-- **MiniMax-M3**（**待确定点 T1**）：M3 的档位枚举与 wire 拼写由 pi-ai 的 `thinkingLevelMap` 决定（对 minimax anthropic 接口的拼写）。实施时二选一：①插件在 host-bridge 进程内读取 pi-ai 包导出（`getSupportedThinkingLevels` + `thinkingLevelMap`），写入桥文件；②若 pi-ai 不导出拼写，对 M3 实测 API 接受的 thinking 参数形态（沿用 anthropic 接口的 thinking/budget 语义并逐档校准）。**方向明确：以 host-bridge 目录档位集合为准，council 现有 minimal/low/medium/high 五档中不在 host-bridge 目录的档位退役。**
+- **MiniMax-M3**（原待确定点 T1，2026-09 已解）：档位枚举与 wire 拼写取
+  `resolveModelInfo` 的 effort id 直译（off/minimal/low/medium/high），
+  跑分实测通过；`max` 等非 identity 映射由各 route 的 `reasoningEfforts`
+  设置负责，桥文件只填 UI 档位拼写（填服务端拼写会被桥自己的校验拦掉，
+  见桥文件 `_comment` 铁律）。实施时二选一：①插件在 host-bridge 进程内读取 pi-ai 包导出（`getSupportedThinkingLevels` + `thinkingLevelMap`），写入桥文件；②若 pi-ai 不导出拼写，对 M3 实测 API 接受的 thinking 参数形态（沿用 anthropic 接口的 thinking/budget 语义并逐档校准）。**方向明确：以 host-bridge 目录档位集合为准，council 现有 minimal/low/medium/high 五档中不在 host-bridge 目录的档位退役。**
 - **maxTokens 注意**：resolveModelInfo 的 `defaultMaxTokens` 是「请求默认值」；模型输出**能力**值（catalog）可能更大。桥文件两者都带：`defaultMaxTokens`（请求默认）+ `capabilityMaxTokens`（能力上限）。benchmark 取能力上限（还原模型本身最大值，问题 18 语义），orchestrator 取 defaultMaxTokens（与主会话行为一致）。
 
 ### 1.3 桥文件刷新

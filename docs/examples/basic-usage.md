@@ -45,13 +45,14 @@ To replace the shipped scores with your own measurements, run the benchmark
 
 ```bash
 # 1-2 hours, ~$15-25 in API costs
-python -m benchmark.bench.runner \
-  --cases benchmark/v21-cases.json \
-  --output benchmark/scores/
+# (cases file and output dir are fixed by convention: benchmark/v21-cases.json
+#  -> benchmark/scores/ + benchmark/responses/; use --candidates/--cases to
+#  subset, --fresh to ignore existing products, --only-failed to resume)
+python -m benchmark.bench.runner
 
 # Then ingest the results into the capability archive
-python -m benchmark.capability_ingest --diff    # preview
-python -m benchmark.capability_ingest --apply   # apply (after manual review)
+python -m benchmark.capability_ingest       # preview (builds pending diff)
+python -m benchmark.capability_ingest --apply  # apply (after manual review)
 ```
 
 Now `capabilities.json` has real scores, and subsequent council runs will use

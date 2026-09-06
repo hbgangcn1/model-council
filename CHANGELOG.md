@@ -4,6 +4,38 @@ All notable changes to **Model Council** are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- `orchestrator/vendor_guard.py` — startup hard gate: fewer than 3 distinct
+  `vendorGroup`s refuses to run (kills silent self-review; default
+  `selection.minVendors: 3`, wired into `selector.load_capabilities()` and
+  `council_v14.run_council()`), with `orchestrator/test_vendor_guard.py`
+  (11 items). README requirement raised to 3 providers from different vendors.
+- `bridge.py` (dev-tree fallback bridge) + `benchmark/test-fixtures/` +
+  `tests/test_bridge_import.py` (9 items) — clean checkouts no longer crash
+  on `benchmark` import; missing bridge file fails loud instead of silently
+  falling back.
+- `scripts/archive-feedback.py` — 90-day retention for
+  `evals/runtime-feedback.jsonl` (monthly archives under `evals/archive/`,
+  line-count reconciliation, dry-run by default), with
+  `orchestrator/test_archive_feedback.py` (15 items) and `docs/operations.md`
+  §11 (EN + 中文）.
+
+### Fixed
+
+- SSE-path dead `bridge_error` key read in `benchmark/bench/llm.py`
+  (the key is never constructed; error text fell back to `http_body`
+  silently) — aligned with the live `error` contract key.
+- `docs/examples/basic-usage.md` — runner/ingest commands used flags that do
+  not exist (`--cases <file>`, `--output`, `--diff`); corrected to the real
+  CLI (`--candidates/--cases` ID lists, bare preview, `--apply`).
+- `docs/operations.md` (EN + 中文）, `docs/design-decisions.md`,
+  `docs/tier-alignment.md`, `docs/architecture.md`, `docs/README.md` —
+  5-tab console (was 6), hand-maintained bridge file (auto-generator gone),
+  missing ADR-004 index entry, new capability-archive schema section.
+
 ## [15.9.0] - 2026-09-03
 
 Zero-to-council in 5 minutes: prebuilt data snapshot + credential flexibility

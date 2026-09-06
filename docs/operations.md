@@ -177,7 +177,7 @@ Honest boundary. Everything above runs from this repo **except**:
 
 | DSH-only | Public equivalent |
 |---|---|
-| 6-tab console (balances, heatmaps, drift curves) | JSON files + `sla_stats.py` + your own plotting |
+| 5-tab console (balances, heatmaps, drift curves) | JSON files + `sla_stats.py` + your own plotting |
 | task-panel scheduling + 30s tick + timeouts | cron / schtasks (§1) |
 | `/api/council/*` incl. `judge-progress` polling + `/metrics` | read the JSON files directly |
 | `run_council` / `council_status` / `council_daily_job` tools | the CLI commands in this manual |
@@ -437,7 +437,7 @@ python -m orchestrator.fx_status               # 0 正常/黄灯，2 停机
 
 | 仅 DSH | 公开版等价 |
 |---|---|
-| 6-Tab 控制台（余额、热力、漂移曲线） | JSON 文件 + `sla_stats.py` + 自己画图 |
+| 5-Tab 控制台（余额、热力、漂移曲线） | JSON 文件 + `sla_stats.py` + 自己画图 |
 | 任务面板调度 + 30 秒 tick + 超时 | cron / schtasks（§1） |
 | `/api/council/*`（含 `judge-progress` 轮询）+ `/metrics` | 直接读 JSON 文件 |
 | `run_council` / `council_status` / `council_daily_job` 工具 | 本手册的命令行 |
