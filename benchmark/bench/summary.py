@@ -33,6 +33,7 @@ def summarize() -> dict:
     cand_dims = defaultdict(lambda: defaultdict(list))  # cand -> dim -> [score]
     zero_rows, dropped_rows, giveup_rows = [], [], []
     judge_models = set()
+    ts_list = []
 
     for s in scores:
         if not isinstance(s, dict) or "score" not in s:
@@ -43,6 +44,8 @@ def summarize() -> dict:
         verdict = s.get("verdict", "real")
         if s.get("judge"):
             judge_models.add(s["judge"])
+        if isinstance(s.get("ts"), (int, float)):
+            ts_list.append(s["ts"])
         if score is None:
             (giveup_rows if verdict == "give_up" else dropped_rows).append(s)
             continue
@@ -56,7 +59,13 @@ def summarize() -> dict:
         "real_zeros": [r for r in zero_rows if r.get("verdict") == "real"],
         "refusals": [r for r in zero_rows if r.get("verdict") == "refusal"],
         "technical": dropped_rows, "give_up": giveup_rows},
-        "judge_models_used": sorted(judge_models)}
+        "judge_models_used": sorted(judge_models),
+        "judgeAperture": {
+            "judgesUsed": sorted(judge_models),
+            "sameVendorPairs": sum(1 for s in scores
+                                     if isinstance(s, dict) and s.get("sameVendorJudge")),
+            "dateRange": [min(ts_list), max(ts_list)] if ts_list else [None, None],
+        }}
     for cid, vals in cand_scores.items():
         avg = round(sum(vals) / len(vals), 2)
         ci = _bootstrap_ci(vals) if len(vals) >= 3 else (None, None)

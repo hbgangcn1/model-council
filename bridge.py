@@ -1,73 +1,33 @@
-"""DSH 模型档位桥 (dev) — 三级 fallback 版本。
+"""DSH 模型档位桥（model-tier-bridge.json）加载——v15.5 单一数据源。
 
-干净 checkout + `pip install -e .` 后,benchmark/bench/config.py 第 11 行 `import bridge`
-不应崩。本文件是开发期入口,行为契约与运行时 ~/.dsh/council/bridge.py 一致:
-
-  - all_candidates() -> list[(model, level)]
-  - wire_for(model, level) -> dict
-  - max_tokens_for(model, which="capabilityMaxTokens") -> int
-  - levels_for(model) -> list[str]
-  - model_entry(model) -> dict
-  - vendor_group(model) -> str
-
-加载顺序(全部 fail-loud,不静默回退):
-  1. PATH_BRIDGE_FILE 环境变量(显式 override)
-  2. ~/.dsh/council/model-tier-bridge.json(运行时,若有 DSH 安装)
-  3. {repo_root}/benchmark/test-fixtures/model-tier-bridge.json(dev 最小 fixture)
-
-约束:不动运行时 ~/.dsh/council/(本文件是 dev 副本,运行时副本独立维护)。
+档位枚举、wire 拼写、maxTokens 一律来自 DSH 运行时模型目录（插件桥 0.5 自动生成；
+本手工版内容与 DSH 目录核对一致）。fail-loud：模型不在桥中或档位不存在直接抛错，
+绝不静默回退手填映射（tier-alignment-plan.md §1.3）。
 """
 import json
-import os
 from pathlib import Path
 
-BASE = Path(__file__).resolve().parent  # dev repo root
-
-RUNTIME_BRIDGE = Path.home() / ".dsh" / "council" / "model-tier-bridge.json"
-DEV_FIXTURE = BASE / "benchmark" / "test-fixtures" / "model-tier-bridge.json"
+BASE = Path(__file__).resolve().parent
+BRIDGE_FILE = BASE / "model-tier-bridge.json"
 
 _cache = None
-
-
-def _resolve_source() -> Path:
-    """Pick the first existing bridge JSON. Fail loud if none."""
-    override = os.environ.get("PATH_BRIDGE_FILE")
-    if override:
-        p = Path(override)
-        if p.exists():
-            return p
-    if RUNTIME_BRIDGE.exists():
-        return RUNTIME_BRIDGE
-    if DEV_FIXTURE.exists():
-        return DEV_FIXTURE
-    raise RuntimeError(
-        f"缺 model-tier-bridge.json (尝试过: override={override!r}, "
-        f"runtime={RUNTIME_BRIDGE}, dev_fixture={DEV_FIXTURE}). "
-        "处理方式: (a) 设置 PATH_BRIDGE_FILE 指向已有桥文件; "
-        "(b) 跑 dsh-council 插件生成运行时 ~/.dsh/council/model-tier-bridge.json; "
-        "(c) 检查 dev 仓 benchmark/test-fixtures/model-tier-bridge.json 是否存在。"
-    )
 
 
 def load() -> dict:
     global _cache
     if _cache is not None:
         return _cache
-    src = _resolve_source()
-    try:
-        doc = json.loads(src.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as e:
-        raise RuntimeError(f"桥文件 {src} JSON 解析失败: {e}") from e
-    if not isinstance(doc, dict) or "models" not in doc:
-        raise RuntimeError(f"桥文件 {src} 不是合法 JSON dict (缺 'models' 键)")
+    if not BRIDGE_FILE.exists():
+        raise RuntimeError(f"缺模型档位桥 {BRIDGE_FILE}（fail-loud：请先由 dsh-council 插件生成）")
+    doc = json.loads(BRIDGE_FILE.read_text(encoding="utf-8"))
     _cache = doc
     return doc
 
 
 def _norm(model: str) -> str:
-    """档案 cid 把 '/' 编码为 '--' (build_capabilities 的 cand_id),
+    """档案 cid 把 '/' 编码为 '--'（build_capabilities 的 cand_id），
     桥文件用原始模型名——查表前还原。"""
-    return model.replace("--", "/", 1) if "--" in model else model
+    return model.replace('--', '/', 1) if '--' in model else model
 
 
 def model_entry(model: str) -> dict:
@@ -76,31 +36,20 @@ def model_entry(model: str) -> dict:
     if entry is None:
         entry = doc.get("models", {}).get(_norm(model))
     if entry is None:
-        raise ValueError(
-            f"模型 {model!r} 不在 DSH 档位桥中 "
-            "(fail-loud: 检查 DSH 模型配置或设置 PATH_BRIDGE_FILE)"
-        )
+        raise ValueError(f"模型 {model} 不在 DSH 档位桥中（fail-loud：请检查 DSH 模型配置）")
     return entry
 
 
 def wire_for(model: str, level: str) -> dict:
     entry = model_entry(model)
-    levels = entry.get("levels") or []
-    for lv in levels:
-        if isinstance(lv, dict) and lv.get("level") == level:
-            return lv.get("wire") or {}
-    raise ValueError(
-        f"模型 {model} 无档位 {level} "
-        f"(桥文件 levels={[lv.get('level') for lv in levels if isinstance(lv, dict)]})"
-    )
+    for lv in entry.get("levels", []):
+        if lv.get("level") == level:
+            return lv.get("wire", {})
+    raise ValueError(f"模型 {model} 无档位 {level}（桥文件 levels={[lv['level'] for lv in entry.get('levels', [])]}）")
 
 
 def levels_for(model: str) -> list:
-    return [
-        lv["level"]
-        for lv in model_entry(model).get("levels", [])
-        if isinstance(lv, dict) and "level" in lv
-    ]
+    return [lv["level"] for lv in model_entry(model).get("levels", [])]
 
 
 def max_tokens_for(model: str, which: str = "capabilityMaxTokens") -> int:
@@ -116,7 +65,7 @@ def vendor_group(model: str) -> str:
 
 
 def all_candidates() -> list:
-    """(model, level) 全档位枚举。"""
+    """(model, level) 全档位枚举（全档位×全案例，v15.5）。"""
     out = []
     for m in load().get("models", {}):
         for lv in levels_for(m):

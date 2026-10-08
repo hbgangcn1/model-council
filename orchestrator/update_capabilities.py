@@ -75,6 +75,29 @@ def _group_zscore(rows):
     return rows
 
 
+def _dedupe_rounds(rows: list) -> list:
+    """v15.12（2026-09-14 修 #3）：同一 (run_id, case_id, model, thinking) 只保留最后一个轮次的行。
+
+    背景：council 每轮结束都会写一遍 feedback 行，同一 run 的多轮返工因此在闭环里留下
+    同一 case 的多行（实测 374 行里 103 组 (run_id, case_id) 重复）。但 feedback 的语义是
+    「一次 run 对某个 (case, model) 的一次评价」——多行会让"跑得更多轮"的 run 被重复计权，
+    并且污染 `_group_zscore` 的公共均值/标准差（那是跨 verifier 对齐的基准）。
+    旧行没有 round 字段（v15.12 才补写），此时按出现顺序取最后一条。
+    """
+    best = {}
+    order = []
+    for i, r in enumerate(rows):
+        key = (r.get("run_id"), r.get("case_id"), r.get("model"), r.get("thinking"))
+        rnd = r.get("round")
+        rnd = rnd if isinstance(rnd, int) else -1
+        if key not in best:
+            best[key] = (rnd, i, r)
+            order.append(key)
+        elif rnd >= best[key][0]:
+            best[key] = (rnd, i, r)
+    return [best[k][2] for k in order]
+
+
 def _feedback_to_runtime_scores():
     """→ (runtime_scores, contributing_run_ids, rejected_self_scored)。runtime_scores: {cid: {dim: {zSum, n}}}。
     P0-5：requireHeteroScorer=true 时拒绝 scoredBy==model 的同源行（自评自选循环切断）。"""
@@ -91,6 +114,9 @@ def _feedback_to_runtime_scores():
             continue
     valid = [r for r in rows if r.get("success") and not r.get("hardGateHit")
              and not r.get("reworkTriggered") and r.get("verifierScore") is not None]
+    # v15.12（#3）：先按 (run_id, case_id, model, thinking) 去重，再进 z 对齐——
+    # 否则同一 run 的多轮返工会被当成多个独立样本重复计权。
+    valid = _dedupe_rounds(valid)
     rejected_self = 0
     if bool(_fb_params().get("requireHeteroScorer", True)):
         kept = []
@@ -136,7 +162,8 @@ def _load_feedback_rows():
             rows.append(json.loads(line))
         except json.JSONDecodeError:
             continue
-    return rows
+    # v15.12（#3）：遥测口径与评分口径一致——同一 (run_id, case_id, model, thinking) 只留末轮
+    return _dedupe_rounds(rows)
 
 
 def _merge_avg(prev, prev_n, vals, ndigits=2):
@@ -224,6 +251,61 @@ def _drift_paused():
     return False, {}
 
 
+def _pause_state_path():
+    # 连续暂停计数器（与 BASE 实时绑定，便于测试 monkeypatch BASE 隔离）。
+    return BASE / "evals" / "drift-pause-state.json"
+
+
+def _track_pause_streak(paused: bool, drift=None) -> dict:
+    """2026-09-06：pause 死锁上限——连续暂停 N 次（默认 7，params.feedback.pauseEscalateRuns）
+    则升级为 judge_drift_pause_escalated（只告警、不自动解封、不自动重建基线；
+    基线重建永远人工 `--init-baseline`）。同自然日多次调用只计一次；转干净自动清零。
+    状态文件损坏/写失败一律就地容错（返回计数，不抛错，绝不把夜间链拖下水）。"""
+    info = {"pauseStreak": 0, "pauseEscalated": False}
+    try:
+        n_esc = int(_fb_params().get("pauseEscalateRuns", 7))
+    except Exception:
+        n_esc = 7
+    path = _pause_state_path()
+    st = {}
+    try:
+        if path.exists():
+            loaded = json.loads(path.read_text(encoding="utf-8"))
+            if isinstance(loaded, dict):
+                st = loaded
+    except Exception:
+        st = {}
+    try:
+        today = now_shanghai().date().isoformat()
+    except Exception:
+        today = ""
+    if not paused:
+        if st:
+            try:
+                path.unlink()
+            except Exception:
+                pass
+        return info
+    prev_n = int(st.get("consecutivePausedRuns") or 0)
+    if st.get("lastPausedDate") == today and today:
+        n = max(prev_n, 1)
+    else:
+        n = prev_n + 1
+    info["pauseStreak"] = n
+    info["pauseEscalated"] = bool(n_esc > 0 and n >= n_esc)
+    new_st = {"consecutivePausedRuns": n, "firstPausedDate": st.get("firstPausedDate") or today,
+              "lastPausedDate": today,
+              "lastDrift": drift, "escalated": info["pauseEscalated"]}
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_suffix(".json.tmp")
+        tmp.write_text(json.dumps(new_st, ensure_ascii=False, indent=2), encoding="utf-8")
+        tmp.replace(path)
+    except Exception:
+        pass
+    return info
+
+
 def update_runtime_telemetry(dry: bool = False) -> dict:
     """P0-4：客观遥测自动回填（每 run 收尾调用；不 bump revision、不改能力分）。
     锁内：读 → 算 → 校验 → 原子写。无有效行 → skipped。"""
@@ -301,9 +383,12 @@ def update(dry: bool = False) -> dict:
     P1-2：judge 漂移 |drift| ≥ pauseWriteDrift → 拒绝写档案。"""
     paused, drift_info = _drift_paused()
     if paused:
-        return {"skipped": True, "reason": "judge_drift_paused",
+        streak = _track_pause_streak(True, (drift_info or {}).get("drift"))
+        reason = "judge_drift_pause_escalated" if streak.get("pauseEscalated") else "judge_drift_paused"
+        return {"skipped": True, "reason": reason,
                 "revision": None, "changedScores": 0, "totalRuns": 0,
-                "sourceRunIds": [], **drift_info}
+                "sourceRunIds": [], **drift_info, **streak}
+    _track_pause_streak(False)
     runtime, contributing, rejected_self = _feedback_to_runtime_scores()
     total_runs = len(contributing)
     if not runtime or total_runs == 0:
@@ -335,9 +420,12 @@ def pending_diff() -> dict:
     人工审批后 `--apply` 才写档案。"""
     paused, drift_info = _drift_paused()
     if paused:
-        return {"skipped": True, "reason": "judge_drift_paused",
+        streak = _track_pause_streak(True, (drift_info or {}).get("drift"))
+        reason = "judge_drift_pause_escalated" if streak.get("pauseEscalated") else "judge_drift_paused"
+        return {"skipped": True, "reason": reason,
                 "pendingDiff": False, "revision": None, "changedScores": 0,
-                "totalRuns": 0, "sourceRunIds": [], **drift_info}
+                "totalRuns": 0, "sourceRunIds": [], **drift_info, **streak}
+    _track_pause_streak(False)
     runtime, contributing, rejected_self = _feedback_to_runtime_scores()
     total_runs = len(contributing)
     if not runtime or total_runs == 0:
@@ -368,7 +456,9 @@ def apply_pending() -> dict:
     revision 单调 + caps_guard 结构校验，任一不满足拒绝。"""
     paused, drift_info = _drift_paused()
     if paused:
-        return {"applied": False, "reason": "judge_drift_paused", **drift_info}
+        streak = _track_pause_streak(True, (drift_info or {}).get("drift"))
+        reason = "judge_drift_pause_escalated" if streak.get("pauseEscalated") else "judge_drift_paused"
+        return {"applied": False, "reason": reason, **drift_info, **streak}
     if not PENDING.exists():
         return {"applied": False, "reason": "no_pending_diff"}
     pend = json.loads(PENDING.read_text(encoding="utf-8"))

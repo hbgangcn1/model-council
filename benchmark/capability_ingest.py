@@ -36,6 +36,7 @@ SCORES_ROOT = BASE / "benchmark" / "scores"
 CAPS = BASE / "capabilities.json"
 PENDING_DIFF = BASE / "benchmark" / "pending-ingest-diff.json"
 ALPHA = 0.3          # EMA 权重默认值（params.ingest.emaAlpha 可覆盖）
+SAME_VENDOR_WEIGHT = 0.5  # 同厂 judge 的主观题分数降权系数（judge-aperture）
 FALLBACK_DIM_SCORE = 5.0  # 极端兜底（无历史分数且均值异常时）
 LOCK_TIMEOUT_S = 30
 LOCK_STALE_S = 120
@@ -65,7 +66,7 @@ def _cases_hash() -> str | None:
 
 
 def collect_cases(scores_root: Path = SCORES_ROOT) -> dict:
-    """→ {cid: {dim: [(case_id, score, ts)]}}。跳过损坏/非 dict 行。"""
+    """→ {cid: {dim: [(case_id, score, ts, same_vendor_bool)]}}。跳过损坏/非 dict 行。"""
     out = {}
     if not scores_root.exists():
         return out
@@ -82,18 +83,24 @@ def collect_cases(scores_root: Path = SCORES_ROOT) -> dict:
             score = rec.get("score")
             if dim and isinstance(score, (int, float)):
                 dims.setdefault(dim, []).append(
-                    (f.stem, float(score), rec.get("ts", 0)))
+                    (f.stem, float(score), rec.get("ts", 0),
+                     bool(rec.get("sameVendorJudge"))))
         if dims:
             out[cid_dir.name] = dims
     return out
 
 
 def plan_ingest(caps: dict, cases: dict, alpha: float = ALPHA) -> tuple:
-    """计算合并计划（不落盘）。返回 (new_caps, summary)。"""
+    """计算合并计划（不落盘）。返回 (new_caps, summary)。
+
+    judge-aperture 降权：同厂 judge 的主观题分数（row 第 4 元 same_vendor
+    为真；兼容旧 3 元组）按 SAME_VENDOR_WEIGHT(0.5) 计入维度加权均值；
+    每个被降权项记入 summary["downWeighted"]。"""
     new_caps = json.loads(json.dumps(caps))  # 深拷贝，不动原对象
     ingested_total = 0
     changed = 0
     per_cid = {}
+    down_weighted = []
     for cid, dims in cases.items():
         model = new_caps.get("models", {}).get(cid)
         if not model:
@@ -106,10 +113,22 @@ def plan_ingest(caps: dict, cases: dict, alpha: float = ALPHA) -> tuple:
                                               "freshness": 1.0, "interpolated": False,
                                               "_source_run_ids": []})
             source_ids = set(entry.get("_source_run_ids") or [])
-            new_rows = [(cid_, s, t) for cid_, s, t in rows if cid_ not in source_ids]
+            new_rows = [r for r in rows if r[0] not in source_ids]
             if not new_rows:
                 continue  # 幂等：已摄入过的 case 跳过
-            mean = sum(s for _, s, _ in new_rows) / len(new_rows)
+            wsum = 0.0
+            wtotal = 0.0
+            for r in new_rows:
+                same = bool(r[3]) if len(r) > 3 else False
+                w = SAME_VENDOR_WEIGHT if same else 1.0
+                wsum += float(r[1]) * w
+                wtotal += w
+                if same:
+                    down_weighted.append({
+                        "cid": cid, "dim": dim, "caseId": r[0],
+                        "score": float(r[1]), "weight": SAME_VENDOR_WEIGHT,
+                    })
+            mean = wsum / wtotal if wtotal else 0.0
             mean = max(0.0, min(10.0, mean))
             bench = entry.get("score")
             if bench is None:
@@ -123,13 +142,13 @@ def plan_ingest(caps: dict, cases: dict, alpha: float = ALPHA) -> tuple:
             entry["samples"] = int(entry.get("samples") or 0) + len(new_rows)
             entry["freshness"] = 1.0
             entry["interpolated"] = False
-            entry["_source_run_ids"] = sorted(source_ids | {c for c, _, _ in new_rows})
+            entry["_source_run_ids"] = sorted(source_ids | {c for c, *_ in new_rows})
             ingested_total += len(new_rows)
             cid_ingested += len(new_rows)
         if cid_ingested:
             per_cid[cid] = {"ingestedCases": cid_ingested, "changedDims": cid_changed}
     summary = {"ingestedCases": ingested_total, "changedDims": changed,
-               "perCandidate": per_cid}
+               "perCandidate": per_cid, "downWeighted": down_weighted}
     if ingested_total:
         new_caps["revision"] = int(new_caps.get("revision") or 0) + 1
         new_caps["updatedAt"] = now_shanghai().isoformat()
@@ -184,6 +203,7 @@ def build_diff(caps_path: Path = CAPS, scores_root: Path = SCORES_ROOT,
         "newCaseCount": summary["ingestedCases"],
         "changedDims": summary["changedDims"],
         "perCandidate": summary["perCandidate"],
+        "downWeighted": summary.get("downWeighted") or [],
         "casesHash": ch,
         "changes": _diff_changes(caps, new_caps),
         "scoresRootEmpty": not cases,  # P0-6：空目录显式告警，不再静默 skipped

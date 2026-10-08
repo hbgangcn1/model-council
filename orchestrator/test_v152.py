@@ -103,11 +103,60 @@ def test_guard_event_pool_summary(tmp_path, monkeypatch):
 # ---------- P0-4：墙钟预算 + 成本三口径 ----------
 
 def test_terminator_wall_budget_forced():
+    """v15.13 语义变更：wall_budget_s 现在是「失控护栏」(runawayGuardS)，不再是收敛预算。
+    达到护栏仍返回 forced，但原因文本已改为"失控护栏触发"，明确它非常态。"""
     st = terminator.RoundState(round_no=1)
     a, reason = terminator.decide(st, False, "h", 9.5, 0.01, 0.03,
                                   wall_elapsed_s=241, wall_budget_s=240)
     assert a == "forced"
-    assert "墙钟" in reason
+    assert "失控护栏" in reason
+
+
+def test_terminator_long_run_not_forced():
+    """v15.13 核心诉求：跑得久不构成终止理由——只要分数还在提升就继续。"""
+    st = terminator.RoundState(round_no=5, s_history=[7.0, 7.3, 7.6, 7.9, 8.2])
+    a, _ = terminator.decide(st, False, "h", 9.5, 0.01, 0.03,
+                             wall_elapsed_s=5000, wall_budget_s=10800)
+    assert a == "rework"
+
+
+def test_run_info_block_reports_synthesis_round(tmp_path):
+    """v15.14：报告「运行信息」必须明示综合素材取自哪一轮，
+    否则读者无法判断拿到的是"最好那版"还是"最后一版"。"""
+    from orchestrator import council_v14
+    out = council_v14._run_info_block(tmp_path, 5, "early_stop", "m", "low",
+                                      used_round=3, best_s=8.58)
+    assert "综合素材" in out
+    assert "第 3 轮" in out
+    assert "8.58" in out
+    # 不传 used_round 时不出现该行（向后兼容）
+    out2 = council_v14._run_info_block(tmp_path, 5, "early_stop", "m", "low")
+    assert "综合素材" not in out2
+
+
+def test_resolve_synthesis_outputs_best_round(tmp_path):
+    """v15.14 核心：最好轮 != 最后一轮时，必须从盘上回读最好轮的产出，
+    而不是用内存里最后一轮（回归轮）的产出。这条磁盘回读路径原本零测试覆盖。"""
+    from orchestrator import council_v14
+    subs = [{"id": "s1"}, {"id": "s2"}]
+    (tmp_path / "outputs-r2-s1.md").write_text("ROUND2-S1", encoding="utf-8")
+    (tmp_path / "outputs-r2-s2.md").write_text("ROUND2-S2", encoding="utf-8")
+    mem = {"s1": "ROUND5-S1", "s2": "ROUND5-S2"}
+
+    got, src, used = council_v14._resolve_synthesis_outputs(tmp_path, subs, mem, 2, 5)
+    assert src == "best-round", src
+    assert used == 2
+    assert got["s1"] == "ROUND2-S1" and got["s2"] == "ROUND2-S2"
+
+    # 最好轮 == 最后一轮 → 直接用内存值，标注 last-round
+    got2, src2, used2 = council_v14._resolve_synthesis_outputs(tmp_path, subs, mem, 5, 5)
+    assert src2 == "last-round" and used2 == 5
+    assert got2["s1"] == "ROUND5-S1"
+
+    # 回读失败 → 退回内存值，且显式标记 missing-file（不静默、不抛错）
+    got3, src3, _ = council_v14._resolve_synthesis_outputs(tmp_path, subs, mem, 4, 5)
+    assert src3 == "best-round(missing-file)", src3
+    assert got3["s1"] == "ROUND5-S1"
 
 
 def test_terminator_wall_budget_not_hit():
@@ -128,17 +177,23 @@ def test_base_cost_cny_same_shape_as_actual():
 
 
 def test_v154_precheck_balance_report():
-    """v15.4：预检改余额感知报告（不拒派，status 恒为 report）。"""
+    """v15.4：预检改余额感知报告（不拒派，status 恒为 report）。
+
+    2026-09-14 修：本测试原用 `deepseek-v4-flash__low`，该 id 已随 2026-09-13 官方
+    改名退役（capabilities.json 现在只有 `deepseek-flash__*`）。`budget.estimate_subtask_cost`
+    按 `caps["models"][cand_id]` 查档案、查不到即返回 None（免费池语义）→ 预检恒为 ¥0，
+    断言失守。改用当前在池且按 token 计费的 `deepseek-flash__low`。
+    """
     st = [{"id": "t1", "inputChars": "你好世界" * 100}]
-    out = budget.precheck(st, 0.15, default_cand="deepseek-v4-flash__low", max_rounds=5)
+    out = budget.precheck(st, 0.15, default_cand="deepseek-flash__low", max_rounds=5)
     assert out["maxRounds"] == 5
     # 期望轮数放大（min(maxIter,2) × 1.2 开销）应大于单轮
-    out1 = budget.precheck(st, 0.15, default_cand="deepseek-v4-flash__low", max_rounds=1)
+    out1 = budget.precheck(st, 0.15, default_cand="deepseek-flash__low", max_rounds=1)
     assert out["estimatedCny"] > out1["estimatedCny"] * 1.5
     # v15.4：无论任务多大都不拒派——status 恒为 report，余额覆盖进入 balanceCoverage
     st3 = [{"id": "s" + str(i), "inputChars": "子任务" * 60} for i in range(3)]
     bal = {"deepseek-official:balance": 100, "deepseek-official:monthly_estimate": 1}
-    out3 = budget.precheck(st3, 0.03, default_cand="deepseek-v4-flash__low", max_rounds=3, balance=bal)
+    out3 = budget.precheck(st3, 0.03, default_cand="deepseek-flash__low", max_rounds=3, balance=bal)
     assert out3["status"] == "report", out3
     assert "deepseek-official" in (out3.get("balanceCoverage") or {}), out3
 

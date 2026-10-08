@@ -1,0 +1,7 @@
+app:
+  name: minishop-inventory
+  version: 3.4.1
+  entry: main.py
+runtime:
+  python: "3.11"
+  workers: 2

@@ -96,12 +96,12 @@ def test_warnings_contract_fields():
     assert "verifier_parse_fail" in src
 
 
-@pytest.mark.skip(reason="Integration test requiring host-bridge plugin; skipped in public release")
-def test_auto_evolve_circuit_breaker_contract():
-    """Validates the host-bridge plugin's auto_evolve circuit breaker.
+# ---------- F2：auto_evolve 断路器（index.js 契约检查） ----------
 
-    Skipped by default — requires the host-bridge plugin to be installed.
-    Run manually after deploying the plugin to verify the contract.
-    """
-    # Path is host-plugin specific; in public release this test is a no-op.
-    pytest.skip("integration test, requires host-bridge plugin")
+def test_auto_evolve_circuit_breaker_contract():
+    idx = Path.home() / ".dsh" / "profiles" / "web" / "node_modules" / "dsh-council" / "index.js"
+    src = idx.read_text(encoding="utf-8")
+    assert "auto_evolve 已暂停" in src
+    # 断路器计数器契约：auto_evolve.py 的状态字段叫 consecutiveFailures
+    #（曾用名 recentFailures 已不存在，双树 grep 确认无此字段，2026-09-06 更新断言跟随现实）
+    assert "consecutiveFailures" in src

@@ -119,3 +119,8 @@ secrets/
 
 # OS
 Thumbs.db
+# runtime artifacts
+benchmark/report.md
+benchmark/scores-summary.json
+model-tier-bridge.json
+pending-pool-changes.json

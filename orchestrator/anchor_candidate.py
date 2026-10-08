@@ -2,7 +2,7 @@
 
 背景（2026-08-24 元评审实证）：stealth/ox-alpha 在 capabilities.json 里被
 build_capabilities.py 按 "stealth" 前缀写死 identityUnknown=true/stable=false，
-导致护栏每次选择都剔除它（24h 306 条 identity_unknown 噪声）。但 maintainer has在
+导致护栏每次选择都剔除它（24h 306 条 identity_unknown 噪声）。但 Robert 已在
 settings.yaml 正式配置 openrouter-stealth provider（OpenRouter 路由 + API key），
 模型应正式可用。锚定 = 把档案标记与真实配置对齐（identityUnknown→false, stable→true）。
 
@@ -16,7 +16,7 @@ settings.yaml 正式配置 openrouter-stealth provider（OpenRouter 路由 + API
    （CANDIDATE_STATUS），防止 rebuild 时按前缀写死旧标记。
 
 用法：
-  python orchestrator/anchor_candidate.py --model stealth/ox-alpha --reason "maintainer has在 settings.yaml 配置 openrouter-stealth（路由+key），正式启用"
+  python orchestrator/anchor_candidate.py --model stealth/ox-alpha --reason "Robert 已在 settings.yaml 配置 openrouter-stealth（路由+key），正式启用"
 """
 import argparse
 import json

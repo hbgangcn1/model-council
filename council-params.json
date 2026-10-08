@@ -1,15 +1,27 @@
 {
   "schemaVersion": 2,
-  "_comment": "Model Council v15.5 可调参数（外置）。默认值=DESIGN-v14.md v15.5 决议；改动本文件即生效（下一 run 起）。v15.5 判停（the maintainer decided）：θ 三档统一 9.5（理论天花板）、增长枯竭=近 3 轮窗口极差<δ=0.2、删除轮数上限（maxIter/maxRounds）；墙钟改动态预算（wallBudget.*，规模自适应，上限=宿主 1920s−240s 余量）。",
+  "_comment": "Model Council v15.5 可调参数（外置）。默认值=DESIGN-v14.md v15.5 决议；改动本文件即生效（下一 run 起）。v15.5 判停（Robert 拍板）：θ 三档统一 9.5（理论天花板）、增长枯竭=近 3 轮窗口极差<δ=0.2、删除轮数上限（maxIter/maxRounds）；墙钟改动态预算（wallBudget.*，规模自适应，上限=宿主 1920s−240s 余量）。",
   "tiers": {
     "fast": { "theta": 9.5, "lambda_": 0.15, "maxSubtasks": 3, "maxTaskTokens": 4000 },
     "standard": { "theta": 9.5, "lambda_": 0.1, "maxSubtasks": 4 },
     "deep": { "theta": 9.5, "lambda_": 0.02, "maxSubtasks": 4 }
   },
   "verification": {
+    "_comment": "v15.14c：minValidVerifiers = 「交叉验证成立」所需的最少有效验证者数。低于它时先尝试异厂商替补，替补不到就显式记 verifier_underverified + 进 warnings（此前只在「0 条有效意见」时补位，剩 1 条会静默地无交叉验证地打分）。",
     "minVerifiers": 1,
     "maxVerifiers": 3,
-    "dualExecTiers": [ "standard", "deep" ]
+    "minValidVerifiers": 2,
+    "dualExecTiers": []
+  },
+  "tools": {
+    "_comment": "v15.11 分池记账：exec/verifier 各一池（谁也挤不掉谁）+ run 级 backstop；synth 保持无工具。改动即生效（下一 run 起）。v15.14b：verifierMaxToolRounds 2→3，与执行者对齐——实测验证者常在第 2 轮仍想核实人因/规格数据，被截断后只能凭已有材料收尾，削弱独立核实。",
+    "enabled": true,
+    "execMaxToolRounds": 3,
+    "verifierMaxToolRounds": 3,
+    "execPool": 60,
+    "verifierPool": 60,
+    "runBackstop": 500,
+    "searchMaxResults": 5
   },
   "circuit": {
     "failureThreshold": 3,
@@ -33,14 +45,19 @@
     "rankNormalize": true
   },
   "terminator": {
+    "_comment": "v15.13（2026-09-14 Robert 拍板：取消墙钟）判停主判据改为「本轮 S_r 未比此前最好值高出 delta，连续 plateauRounds 轮如此 → early_stop」。window 是旧「近 N 轮极差 < delta」判据的遗留字段，已废弃、保留仅为兼容外部读取。",
     "delta": 0.2,
+    "plateauRounds": 2,
     "window": 3
   },
   "wallBudget": {
-    "_comment": "v15.5 动态墙钟：预算 = min(maxS, baseS + 每子任务×(执行位数+验证者数)×perSlotS)。fast≈1.3K s / standard-deep≈1.7K s（clamp 上限）",
+    "_comment": "v15.13：墙钟不再是收敛限制器。跑分链统计显示它每 run 都触发（forced 11 次），把「还没收敛」当成「跑太久」处理，直接破坏收敛；实测每轮约 645s、而旧预算只有 1320-1560s，连「枯竭判据所需的最小轮数」都装不下。现在 runawayGuardS 是纯失控护栏（默认 3 小时），只在病态循环或枯竭判据失灵时兜底，正常 run 由 terminator 的 growth-plateau 判据自然结束。baseS/perSlotS/maxS 已废弃（保留兼容旧读）。hostTimeoutS 仅用于运行时自检提醒：必须 > runawayGuardS + reserveS。插件侧 index.js 的轮询 deadline 必须 ≥ hostTimeoutS。",
+    "runawayGuardS": 10800,
+    "reserveS": 900,
+    "hostTimeoutS": 12600,
     "baseS": 600,
     "perSlotS": 60,
-    "maxS": 1680
+    "maxS": 2100
   },
   "streaming": {
     "idleTimeoutS": 180,
@@ -72,7 +89,7 @@
     "enabled": true,
     "judgeModel": "MiniMax-M3",
     "judgeThinking": "medium",
-    "judge2Model": "deepseek-v4-flash",
+    "judge2Model": "deepseek-flash",
     "judge2Thinking": "low",
     "warnDrift": 0.3,
     "alertThreshold": 1.0,

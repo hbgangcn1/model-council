@@ -3,7 +3,7 @@ v15.4：成绩绑定 caseHash（题目内容版本）——换内容即新成绩
 判分走 score_objective_with_spec（SCORERS 未命中时用 scoringSpec 通用判分，金标晋升题）。
 
 v15.6 改造：实时写 bench-progress.json（model/档位/案例 n/m），
-host-bridge plugin 通过 /api/council/bench-progress 端点读这个文件，前端轮询显示进度。"""
+dsh-council 通过 /api/council/bench-progress 端点读这个文件，前端轮询显示进度。"""
 import argparse
 import hashlib
 import json
@@ -18,8 +18,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from bench import config, cases, llm, scorer, cross_judge, summary as summary_mod
 
-# v15.6 进度文件路径：写在 council 根目录（host-bridge plugin 通过 /api/council/bench-progress 读它）
-# 用 PID 区分并发跑分（虽然 host-bridge plugin 同一时刻只 spawn 一个，但作为防御性写法）
+# v15.6 进度文件路径：写在 council 根目录（dsh-council 通过 /api/council/bench-progress 读它）
+# 用 PID 区分并发跑分（虽然 dsh-council 同一时刻只 spawn 一个，但作为防御性写法）
 _BENCH_PROGRESS_FILE = Path(__file__).resolve().parent.parent.parent / "bench-progress.json"
 
 
@@ -41,7 +41,7 @@ def load_progress() -> dict:
 def save_progress(p):
     config.save_json(config.PROGRESS_FILE, p)
 
-# ---------------- v15.6 bench-progress.json（实时进度，给 host-bridge plugin 前端轮询） ----------------
+# ---------------- v15.6 bench-progress.json（实时进度，给 dsh-council 前端轮询） ----------------
 
 # 进程内单例：避免每次 case 完成后重新写整个文件
 _progress_state: dict = {}
@@ -128,6 +128,29 @@ def load_resp(cand_id: str, case_id: str):
             return None
     return None
 
+def _vendor_group(model: str | None) -> str | None:
+    """Judge-aperture labeling: vendor group of a model id (prefix-stripped).
+
+    MiniMax 系 (MiniMax-M3 / M3.1 / provider 前缀写法) → "minimax"；
+    DeepSeek 系 → "deepseek"；其他 → 首段小写；None/空 → None。"""
+    if not model:
+        return None
+    base = (model or "").split("/")[-1]
+    if base.startswith("MiniMax"):
+        return "minimax"
+    low = base.lower()
+    if low.startswith("deepseek"):
+        return "deepseek"
+    return base.split("-")[0].lower() or None
+
+
+def _is_empty_response(note: str) -> bool:
+    """空回复签名：模型正常结束但零内容块（pi-ai EMPTY_RESPONSE，如静默拒答或偶发退化空包）。
+    注意：空≠拒答（也可能是毛刺），这里只分类不判分；拒答认定权在 judge。
+    """
+    return "completed response with no content" in (note or "") or "EMPTY_RESPONSE" in (note or "")
+
+
 def _gen_one(cand_model, cand_thinking, case, args):
     """单个（候选×题）生成任务（线程安全：产物原子写）。"""
     cid = config.cand_id(cand_model, cand_thinking)
@@ -137,7 +160,7 @@ def _gen_one(cand_model, cand_thinking, case, args):
     if args.resume and existing and existing.get("status") == "done" \
             and existing.get("caseHash") == case_hash:
         return f"[SKIP] {cid} / {case_id}"
-    if args.only_failed and existing and existing.get("status") != "failed":
+    if args.only_failed and existing and existing.get("status") not in ("failed", "empty"):
         return f"[SKIP] {cid} / {case_id}"
     prompt = cases.build_prompt(case)
     use_tools = cases.needs_tools(case)
@@ -158,7 +181,12 @@ def _gen_one(cand_model, cand_thinking, case, args):
             note = f"finish_reason={meta['finish_reason']}（截断，加大 max_tokens 重试）"
     except Exception as e:
         text, meta, status, note = "", {}, "failed", str(e)[:300]
-    if status == "failed" and retries >= 2:
+        # 2026-09-06：空回复单列 empty（模型正常结束但零内容，如静默拒答；偶发退化空包）。
+        # 与传输失败区分：scorer 自动跳过（只判 done）、--only-failed 会重跑、报告可见。
+        # 注意：不直接判 refusal——空≠拒答（也可能是毛刺），拒答认定权在 judge，不在这里。
+        if _is_empty_response(note):
+            status = "empty"
+    if status in ("failed", "empty") and retries >= 2:
         status = "give_up"
     record = {"cand_id": cid, "model": cand_model, "thinking": cand_thinking,
               "thinkingWire": config.thinking_param(cand_model, cand_thinking),  # v15.5：wire 参数落盘（数据溯源，问题 20）
@@ -167,7 +195,7 @@ def _gen_one(cand_model, cand_thinking, case, args):
               "caseHash": case_hash,
               "prompt": prompt, "text": text, "meta": meta,
               "status": status, "note": note,
-              "retries": retries + (1 if status == "failed" else 0),
+              "retries": retries + (1 if status in ("failed", "empty") else 0),
               "ts": time.time()}
     (resp_path(cid, case_id).parent).mkdir(parents=True, exist_ok=True)
     config.save_json(resp_path(cid, case_id), record)
@@ -180,13 +208,13 @@ def _gen_one(cand_model, cand_thinking, case, args):
 def generate(args, case_list, cand_list, workers: int = 3):
     """v15.6 默认 3 worker 并发（sandbox._calls 已改 threading.local 隔离，修复 race condition）。
 
-    之前默认 3 并发，但 tool-use case 走 host-bridge 时 3 worker 并发出现 race condition：
+    之前默认 3 并发，但 tool-use case 走 DSH bridge 时 3 worker 并发出现 race condition：
     典型症状是部分 case 产物的 text_len=0 tool_calls=0（model 调 tool 但产物空）。
     可能根因：sandbox._calls 全局计数被并发 worker 互相污染 + pi-ai streamSimple 可能有共享状态。
     v15.5 时代无 tool-use case，未暴露此问题。
 
     race condition 排查前先用 workers=1（顺序），跑 5 档×37 case=185 case 约 8-10 分钟。
-    后续排查方向：threading.local() 隔离 sandbox 计数、test pi-ai 并发安全性、host-bridge
+    后续排查方向：threading.local() 隔离 sandbox 计数、test pi-ai 并发安全性、DSH bridge
     端 ctx.llm.stream() 是否有共享状态。详见 AGENTS.md "Council benchmark 并发 race condition"。
     """
     jobs = [(m, t, c) for m, t in cand_list for c in case_list]
@@ -246,6 +274,13 @@ def score(args, case_list, cand_list):
                    "verdict": judge_meta.get("verdict", "real"),
                    "judge": judge_meta.get("judge"),
                    "ts": time.time()}
+            if case_id in cross_judge.CROSS_CASES:
+                # Judge-aperture labeling（判分题）：记录 judge 厂商组 +
+                # 是否同厂判分。确定性判分（scorer 路径）保持 judge:null 不动。
+                jg = _vendor_group(judge_meta.get("judge"))
+                cg = _vendor_group(cand_model)
+                out["judgeVendorGroup"] = jg
+                out["sameVendorJudge"] = bool(jg) and jg == cg
             (score_path(cid, case_id).parent).mkdir(parents=True, exist_ok=True)
             config.save_json(score_path(cid, case_id), out)
             print(f"[SCORE] {cid} / {case_id}: {result} ({note[:60]})", flush=True)

@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "_comment": "模型池成员名单（v15.5-K：成员准入第一层；增删全手动，2026-10-03 Robert 拍板，自动检测只提议+告警）。全档位按 DSH 档位桥展开。未跑分成员无档案条目→不参与选择。",
+  "models": [
+    {
+      "model": "deepseek-flash",
+      "status": "active",
+      "addedAt": "2026-09-13T16:29:00+08:00",
+      "note": "user-added 2026-09-13: 接替 v4-flash/v4-pro（DeepSeek-V4.1-Flash，主会话名 DeepSeek-V41-Flash），off/low/high/max 四档"
+    },
+    {
+      "model": "deepseek-v4-pro",
+      "status": "retired-by-user",
+      "addedAt": null,
+      "note": "初始池成员 | user-retired 2026-09-13: Robert 换用 deepseek-flash，成绩保留只读"
+    },
+    {
+      "model": "deepseek-v4-flash",
+      "status": "retired-by-user",
+      "addedAt": null,
+      "note": "初始池成员 | user-retired 2026-09-13: 旧名别名（由 V4.1-Flash 按 Flash 价提供服务），选择池退役，成绩保留只读"
+    },
+    {
+      "model": "MiniMax-M3",
+      "status": "active",
+      "addedAt": null,
+      "note": "初始池成员 | auto-removed: DSH 模型目录已移除 2026-09-04T10:25:31.601Z | restored 2026-09-04: 18:25 auto-remove 系启动竞态误判（inDsh=true），撤销"
+    },
+    {
+      "model": "muse-spark-1.3-contributor-free",
+      "status": "active",
+      "addedAt": "2026-09-06T22:30:00+08:00",
+      "note": "user-confirmed 2026-09-06: caps/bridge 均有，在用免费模型，零成本；补入池（此前漏入池致 feedback_rejected_nonpool 误报已退役）"
+    },
+    {
+      "model": "stealth/ox-alpha",
+      "status": "retired-by-dsh-removal",
+      "addedAt": null,
+      "note": "初始池成员 | retired: Robert 移除 OpenRouter provider 2026-08-27"
+    },
+    {
+      "model": "MiniMax-M2.7",
+      "status": "retired-by-user",
+      "addedAt": "2026-08-25T13:11:10.727Z",
+      "note": "user-added | user-removed 2026-08-25T13:11:10.776Z"
+    },
+    {
+      "model": "glm-5.3-flash",
+      "status": "retired-by-user",
+      "addedAt": "2026-08-28T03:14:11.833Z",
+      "note": "user-added | user-retired 2026-09-06: Robert 确认已退役，从池移除（caps/bridge 均无条目）；成绩保留只读"
+    },
+    {
+      "model": "MiniMax-M3.1-Flash-Preview",
+      "status": "active",
+      "addedAt": 1791052115.4434545,
+      "note": "user-added 2026-10-04: Robert 拍板入池（caps+bridge 已有全档位成绩）"
+    }
+  ]
+}

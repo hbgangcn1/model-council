@@ -1,5 +1,5 @@
 """事实断言检索验证（硬门禁政策）：提取断言清单 + 三分类回写。
-初期检索由 host main session web_search 代做（verify_claims 输出待验证清单，接受验证结果回写）。"""
+初期检索由 DSH 主会话 web_search 代做（verify_claims 输出待验证清单，接受验证结果回写）。"""
 import json
 import re
 from pathlib import Path

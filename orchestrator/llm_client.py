@@ -267,6 +267,7 @@ class CompositeClient:
         max_tokens: int,
         tools: Optional[list] = None,
     ) -> tuple[str, dict]:
+        first_error = None
         last_error = None
         for client in self.clients:
             t0 = time.time()
@@ -281,16 +282,23 @@ class CompositeClient:
                     pass  # callback errors must not break the call
                 return text, meta
             except Exception as e:
+                if first_error is None:
+                    first_error = e
                 last_error = e
                 try:
                     self.on_failure(model, e)
                 except Exception:
                     pass
                 continue
-        # All clients failed
+        # All clients failed. Report BOTH first and last errors:
+        # previously only the last error was shown, which hid the real cause
+        # (e.g. bridge 429 first, then stub "no transport" last → empty-looking
+        # failure). More text can only help downstream keyword classifiers.
+        def _short(e):
+            return f"{type(e).__name__}: {str(e)[:300]}" if e is not None else "none"
         err_msg = (
-            f"allall {len(self.clients)} LLM clients failed; last error: "
-            f"{type(last_error).__name__}: {str(last_error)[:300]}"
+            f"all {len(self.clients)} LLM clients failed; "
+            f"first error: {_short(first_error)}; last error: {_short(last_error)}"
             if last_error
             else "no LLM client available"
         )

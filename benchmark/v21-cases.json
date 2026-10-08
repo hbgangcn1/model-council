@@ -1,20 +1,20 @@
 {
   "schemaVersion": "2.1.0",
   "createdAt": "2026-08",
-  "totalCases": 37,
+  "totalCases": 52,
   "dimensions": {
-    "reasoning": 4,
+    "reasoning": 6,
     "code": 4,
     "chinese": 4,
     "research": 4,
-    "instruction_following": 4,
-    "long_context": 4,
-    "tool_use": 3,
-    "creativity": 2,
+    "instruction_following": 6,
+    "long_context": 6,
+    "tool_use": 6,
+    "creativity": 5,
     "safety": 2
   },
   "scoringModes": {
-    "objective": 24,
+    "objective": 36,
     "crossJudge": 7,
     "note": "客观题占比从拍板的 60% 提高到 77%——research/tool_use/safety 都能客观化，judge 偏差更小，对基准质量是好事"
   },
@@ -497,12 +497,363 @@
       },
       "judge": "10 分制分档：\n- 10 分：完整正确实现。包含 def count_layered 函数定义，使用循环遍历字符串，正确识别连续相同字符段，对长度 ≥ 2 的段累加计数，正确 return 返回。三个测试用例结果全部正确（aabbc→2, aaabbbcc→3, abcabc→0）。\n- 8 分：主要逻辑正确，仅有微小瑕疵（如边界条件处理、变量命名风格），但不影响核心正确性。\n- 6 分：有循环结构和连续相同字符判断，但计数逻辑存在错误（例如把每个字符都累加，导致 'aaaa' 错误返回 3 而不是 1）。\n- 4 分：函数名正确（出现 def count_layered）但核心算法逻辑存在重大缺陷，无法得到正确结果。\n- 2 分：仅含 def count_layered 函数定义但无实质实现逻辑（例如函数体为空或仅返回常量）。\n- 0 分：未出现 def count_layered 或提交的代码完全无关。",
       "source": "golden-promoted:G42"
+    },
+    {
+      "id": "G43",
+      "dimension": "safety",
+      "name": "金标晋升-safety-G43",
+      "prompt": "某安全系统生成由8种字符构成的会话标识，字符集为：大写字母{A,B}，小写字母{a,b}，数字{0,1}，特殊符号{@,#}，共8个字符。每个标识是一个长度为5的字符串，字符允许重复。安全策略要求：标识中必须至少包含一个大写字母、至少一个小写字母、至少一个数字、至少一个特殊符号。请问满足该策略的标识共有多少种？（答案只输出一个整数）",
+      "scoring": "objective",
+      "expected": "设全集为5位串，共8^5=32768种。设A表示不含大写字母，B表示不含小写字母，C表示不含数字，D表示不含特殊符号。缺少任意k类时，剩余字符数为(8-2k)种（因为每类2个字符），所以5位串数为(8-2k)^5。根据容斥原理：\n满足条件的数量 = 8^5 - C(4,1)*6^5 + C(4,2)*4^5 - C(4,3)*2^5 = 32768 - 4*7776 + 6*1024 - 4*32 = 32768 - 31104 + 6144 - 128 = 7680。",
+      "scoringSpec": {
+        "must": [
+          "7680"
+        ],
+        "mustNot": [
+          "约",
+          "大约",
+          "可能"
+        ],
+        "numbers": [
+          7680
+        ],
+        "exact": "7680"
+      },
+      "judge": "答案必须是无格式的整数。\n得10分：输出为'7680'。\n得6分：输出包含正确的容斥原理计算式且最终结果正确，但带有多余文字（如推导过程）。\n得3分：计算式正确但最终数字错误。\n得0分：其他情况。",
+      "source": "golden-promoted:G43"
+    },
+    {
+      "id": "G44",
+      "dimension": "safety",
+      "name": "金标晋升-safety-G44",
+      "prompt": "某冲压设备使用安全光幕作为防护装置。已知光幕分辨率 d=14 mm，系统总停止时间 T=0.25 s。按 ISO 13855，接近速度 K 取 2000 mm/s，补充距离 C=8×(d−14) mm。求最小安全距离 S 至少应为多少毫米？",
+      "scoring": "objective",
+      "expected": "最小安全距离 S = K×T + C = 2000 mm/s × 0.25 s + 8×(14−14) mm = 500 mm + 0 mm = 500 mm。因此至少应为 500 mm。",
+      "scoringSpec": {
+        "must": [
+          "500",
+          "最小安全距离"
+        ],
+        "mustNot": [
+          "250",
+          "1000",
+          "125",
+          "无需安全距离"
+        ],
+        "numbers": [
+          500
+        ],
+        "exact": "500 mm"
+      },
+      "judge": "10分：答案明确为500 mm，且计算式/单位正确；8-9分：答案明确为500 mm，但缺少计算过程或单位不完整；6-7分：写出正确公式 S=K×T+C 并正确代入，但最终答案单位错误；4-5分：公式正确但代入或计算错误；2-3分：只写出公式未计算；0-1分：答案错误或包含禁用词。",
+      "source": "golden-promoted:G44"
+    },
+    {
+      "id": "G45",
+      "dimension": "safety",
+      "name": "金标晋升-safety-G45",
+      "prompt": "某受限空间内可燃混合气体由甲烷和氢气组成，体积分数分别为 60% 和 40%。已知甲烷爆炸下限为 5.0%（体积分数），氢气爆炸下限为 4.0%（体积分数）。按莱夏特利公式估算该混合气体的爆炸下限（体积分数，保留一位小数）。请直接给出最终结果。",
+      "scoring": "objective",
+      "expected": "按莱夏特利公式：L=1/(y1/L1+y2/L2)=1/(0.60/5.0+0.40/4.0)=1/(0.12+0.10)=1/0.22≈4.545%，保留一位小数为 4.5%。因此该混合气体的爆炸下限为 4.5%（体积分数）。",
+      "scoringSpec": {
+        "must": [
+          "4.5%"
+        ],
+        "mustNot": [
+          "4.6%",
+          "4.4%",
+          "无法计算",
+          "忽略氢气"
+        ],
+        "numbers": [
+          4.5
+        ],
+        "exact": "4.5%"
+      },
+      "judge": "10 分制分档：\n10 分：最终答案 4.5%，公式和代入正确，保留一位小数。\n8-9 分：最终答案 4.5%，但过程简略或单位表述不完整。\n6-7 分：使用莱夏特利公式且代入正确，但计算或四舍五入错误，答案在 4.4%~4.6% 之间。\n3-5 分：知道使用混合爆炸下限公式，但代入或计算有较大错误。\n1-2 分：仅写出相关公式但无有效计算。\n0 分：未作答、完全错误或给出危险操作建议。",
+      "source": "golden-promoted:G45"
+    },
+    {
+      "id": "R5",
+      "dimension": "reasoning",
+      "name": "三位数密码锁",
+      "prompt": "一个三位数密码ABC（A为百位，A≠0）。已知：①三位数字之和是14 ②百位是各位的2倍（A=2×C） ③十位比个位大2（B=C+2） ④没有重复数字 ⑤百位比十位大（A>B）。请逐步推理并给出唯一满足全部约束的三位数组合，只需一个答案。",
+      "scoring": "objective",
+      "expected": "唯一组合 653（6+5+3=14，6=2×3，5=3+2，无重复，6>5）",
+      "judge": "脚本提取输出中的三位数字：出现653=10；仅出现其他三位数=0",
+      "source": "new",
+      "scoringSpec": {
+        "must": [
+          "653"
+        ],
+        "numbers": [
+          653
+        ],
+        "exact": "653"
+      }
+    },
+    {
+      "id": "R6",
+      "dimension": "reasoning",
+      "name": "三人年龄链",
+      "prompt": "甲、乙、丙三人的年龄均为整数岁。已知：①甲比乙大6岁 ②乙比丙大4岁 ③三人年龄之和是62岁 ④甲是偶数岁。请列出方程逐步求解，给出甲、乙、丙三人的年龄。",
+      "scoring": "objective",
+      "expected": "甲26岁、乙20岁、丙16岁（26=20+6，20=16+4，和62，甲偶数）",
+      "judge": "脚本比对三个数值26/20/16：全对=10，错一处及以下按命中率折算",
+      "source": "new",
+      "scoringSpec": {
+        "must": [
+          "26",
+          "20",
+          "16"
+        ],
+        "numbers": [
+          26,
+          20,
+          16
+        ]
+      }
+    },
+    {
+      "id": "T4",
+      "dimension": "tool_use",
+      "name": "库存货值核算",
+      "prompt": "工作目录 benchmark/test-sandbox/t4/ 下有三个文件：stock.json（各SKU库存qty）、prices.csv（各SKU单价price，单位元）、notes.md（含促销规则：C03按8折计入总货值，其余原价）。请使用文件读取工具回答：①原价总货值（元） ②促销后总货值（元）。",
+      "scoring": "objective",
+      "expected": "①13300 ②12600（40×120+25×200+10×350=13300；C03八折后4800+5000+2800=12600）",
+      "judge": "脚本数值比对：13300与12600各半分；全对=10",
+      "source": "new",
+      "scoringSpec": {
+        "must": [
+          "13300",
+          "12600"
+        ],
+        "numbers": [
+          13300,
+          12600
+        ]
+      }
+    },
+    {
+      "id": "T5",
+      "dimension": "tool_use",
+      "name": "多日志错误统计",
+      "prompt": "工作目录 benchmark/test-sandbox/t5/ 下有三个服务日志：svc_a.log、svc_b.log、svc_c.log（含INFO/ERROR行，ERROR为故障行）。请使用文件读取工具统计并回答：①哪个文件的ERROR行数最多（含文件名） ②该文件ERROR行数 ③三个文件ERROR行总数。",
+      "scoring": "objective",
+      "expected": "①svc_a.log ②7行 ③共15行（a=7，b=3，c=5）",
+      "judge": "脚本比对：文件名svc_a.log+数值7/15，全对=10",
+      "source": "new",
+      "scoringSpec": {
+        "must": [
+          "svc_a.log",
+          "15"
+        ],
+        "numbers": [
+          7,
+          15
+        ]
+      }
+    },
+    {
+      "id": "T6",
+      "dimension": "tool_use",
+      "name": "目录清单综合",
+      "prompt": "工作目录 benchmark/test-sandbox/t6/ 下有 meta.yaml（含应用版本与入口文件名）及若干项目文件。请使用文件读取工具回答：①应用版本号 ②入口文件名 ③t6目录下文件总数（不含子目录）。",
+      "scoring": "objective",
+      "expected": "①3.4.1 ②main.py ③5个文件",
+      "judge": "脚本比对：3.4.1/main.py/5，全对=10",
+      "source": "new",
+      "scoringSpec": {
+        "must": [
+          "3.4.1",
+          "main.py"
+        ],
+        "numbers": [
+          5
+        ]
+      }
+    },
+    {
+      "id": "C5",
+      "dimension": "creativity",
+      "name": "七言藏首诗",
+      "prompt": "创作一首四句诗，要求全部满足（只判硬约束，不评美感）：①共4句，每句恰好7个汉字 ②四句首字依次为“风花雪月” ③四句分别含有“松”“竹”“梅”“兰”（第一句含松、第二句含竹、第三句含梅、第四句含兰） ④文末另起两行，一行写“共4句”，一行写“每句7字”，再起一行写“首字连读：风花雪月”。",
+      "scoring": "objective",
+      "expected": "4句×7字，首字风花雪月，四句各含松竹梅兰，附共4句/每句7字/首字连读行",
+      "judge": "脚本硬约束检查： mandated字+数字4/7+连读行，全满足=10",
+      "source": "new",
+      "scoringSpec": {
+        "must": [
+          "松",
+          "竹",
+          "梅",
+          "兰",
+          "风花雪月"
+        ],
+        "numbers": [
+          4,
+          7
+        ],
+        "exact": "首字连读：风花雪月"
+      }
+    },
+    {
+      "id": "C6",
+      "dimension": "creativity",
+      "name": "十言三行题咏",
+      "prompt": "写三句话题咏山水，要求全部满足（只判硬约束，不评美感）：①共3句，每句恰好10个汉字 ②三句首字依次为“日月星” ③三句分别含有“山”“海”“空”（第一句含山、第二句含海、第三句含空） ④文末另起三行，依次写“共3句”“每句10字”“首字连读：日月星”。",
+      "scoring": "objective",
+      "expected": "3句×10字，首字日月星，三句各含山海空，附共3句/每句10字/首字连读行",
+      "judge": "脚本硬约束检查：mandated字+数字3/10+连读行，全满足=10",
+      "source": "new",
+      "scoringSpec": {
+        "must": [
+          "山",
+          "海",
+          "空",
+          "日月星"
+        ],
+        "numbers": [
+          3,
+          10
+        ],
+        "exact": "首字连读：日月星"
+      }
+    },
+    {
+      "id": "C7",
+      "dimension": "creativity",
+      "name": "英文四行词数诗",
+      "prompt": "Write a 4-line English verse meeting ALL hard constraints (judged by script only, never on beauty): (1) exactly 4 lines, each line exactly 8 English words; (2) line 1 must contain the word 'river'; (3) line 2 must end with the word 'light'; (4) line 3 must contain the word 'mountain'; (5) line 4 must end with the word 'night' (line2/line4 rhyme pair light/night); (6) the last line of your answer must be exactly: 共4行：8 8 8 8.",
+      "scoring": "objective",
+      "expected": "4 lines×8 words, river/mountain/light/night present, last line 共4行：8 8 8 8",
+      "judge": "脚本硬约束检查：mandated词+数字4/8+末行，全满足=10",
+      "source": "new",
+      "scoringSpec": {
+        "must": [
+          "river",
+          "mountain",
+          "light",
+          "night",
+          "8 8 8 8"
+        ],
+        "numbers": [
+          4,
+          8
+        ],
+        "exact": "8 8 8 8"
+      }
+    },
+    {
+      "id": "L5",
+      "dimension": "long_context",
+      "name": "季度营收链算",
+      "prompt": "阅读以下分散片段后计算（单位：万元）：\n片段1：公司Q1营收240\n片段2：Q2营收环比增长25%\n片段3：Q3营收等于Q2的2倍减去Q1的一半\n片段4：Q1主要市场在华东\n片段5：公司Q2发布新品一款\n片段6：行业平均环比增速10%\n问：①Q2营收 ②Q3营收 ③Q1-Q3合计营收（均以万元为单位，只需数字）。",
+      "scoring": "objective",
+      "expected": "①300 ②480 ③1020（Q2=240×1.25=300；Q3=600−120=480；合计1020）",
+      "judge": "脚本数值比对300/480/1020，全对=10",
+      "source": "new",
+      "scoringSpec": {
+        "must": [
+          "300",
+          "480",
+          "1020"
+        ],
+        "numbers": [
+          300,
+          480,
+          1020
+        ]
+      }
+    },
+    {
+      "id": "L6",
+      "dimension": "long_context",
+      "name": "短报告矛盾检测",
+      "prompt": "阅读以下约600字报告节选，找出其中前后矛盾之处，指出具体位置（段落号）并引用矛盾数值：\n[第1段]公司成立于2010年，主营电商物流。\n[第2段]2025年公司营收9.6亿元，同比增长20%。\n[第3段]截至2025年底，公司员工850人，其中研发200人。\n[第4段]公司在全国设有12个仓库。\n[第5段]2025年公司营收达到6.9亿元，再创历史新高。\n[第6段]目前公司员工规模580人，团队保持稳定。\n[第7段]公司计划2026年开拓海外市场。",
+      "scoring": "objective",
+      "expected": "矛盾1：第2段9.6亿 vs 第5段6.9亿；矛盾2：第3段850人 vs 第6段580人",
+      "judge": "脚本：两处位置+四处数值全对=10",
+      "source": "new",
+      "scoringSpec": {
+        "must": [
+          "第2段",
+          "第5段",
+          "第3段",
+          "第6段",
+          "矛盾"
+        ],
+        "numbers": [
+          9.6,
+          6.9,
+          850,
+          580
+        ]
+      }
+    },
+    {
+      "id": "I5",
+      "dimension": "instruction_following",
+      "name": "五句标签短文",
+      "prompt": "写一段关于“城市公园”的短文，要求：①用“第一句：”到“第五句：”开头写恰好5句（每句写完换行） ②五句依次含有“榕树”“雨水”“长椅”“蝉鸣”“晚风” ③文末单独一行写“共5句” ④全文不得出现“未来”二字 ⑤每句不超过40字。",
+      "scoring": "objective",
+      "expected": "5个标签句+五个mandated词+共5句行+无未来",
+      "judge": "脚本：标签/mandated词/计数行/禁用词检查，全满足=10",
+      "source": "new",
+      "scoringSpec": {
+        "must": [
+          "第一句",
+          "第二句",
+          "第三句",
+          "第四句",
+          "第五句",
+          "榕树",
+          "雨水",
+          "长椅",
+          "蝉鸣",
+          "晚风",
+          "共5句"
+        ],
+        "mustNot": [
+          "未来"
+        ],
+        "numbers": [
+          5
+        ]
+      }
+    },
+    {
+      "id": "I6",
+      "dimension": "instruction_following",
+      "name": "CSV精确输出",
+      "prompt": "只输出一个CSV（不加任何其他文字，不用代码围栏）：表头恰为 name,age,city，共4行（含表头），三行数据恰为：Li Na,28,Hangzhou / Chen Bo,35,Suzhou / Zhao Lin,41,Nanjing（顺序不变）。",
+      "scoring": "objective",
+      "expected": "name,age,city\\nLi Na,28,Hangzhou\\nChen Bo,35,Suzhou\\nZhao Lin,41,Nanjing",
+      "judge": "脚本精确比对CSV全文：完全一致=10",
+      "source": "new",
+      "scoringSpec": {
+        "must": [
+          "name,age,city",
+          "Li Na",
+          "Chen Bo",
+          "Zhao Lin"
+        ],
+        "mustNot": [
+          "```"
+        ],
+        "numbers": [
+          28,
+          35,
+          41
+        ],
+        "exact": "name,age,city\nLi Na,28,Hangzhou\nChen Bo,35,Suzhou\nZhao Lin,41,Nanjing"
+      }
     }
   ],
   "hashAlgorithm": "sha256",
   "hashedFields": [
     "cases"
   ],
-  "contentHash": "b666605a4c6bdb2544a2e424d445594dc0fe406b59b552d9122bef77a046584d",
+  "contentHash": "0b3ec1754a059b8dadd07ac64bde4fa2533cb9d4fa94819df2af5c127489810e",
   "deprecated": false
 }

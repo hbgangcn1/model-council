@@ -1,7 +1,7 @@
 """v15.1 参数外置：所有选择权重/熔断/收敛/超时参数从 council-params.json 加载。
 
 动机（2026-08-24 council 评审报告 M 项）：选择权重、熔断参数原先硬编码在模块常量里，
-调优必须改代码。现在统一收敛到 ~< user-data-dir >/council-params.json：
+调优必须改代码。现在统一收敛到 ~/.dsh/council/council-params.json：
 - 文件缺失/字段缺失 → 用 DEFAULTS 兜底（行为与旧硬编码一致，向后兼容）；
 - 测试可用环境变量 COUNCIL_PARAMS_FILE 指向临时文件隔离；
 - 改动走文件评审（diff 可见），无需重装任何组件。
@@ -45,6 +45,17 @@ DEFAULTS = {
         "maxExecutorsPerSubtask": 1,  # 执行者数参数位（双路互评时=2，由 dualExecTiers 控制）
         "dualExecTiers": ["standard", "deep"],  # 双路执行互评档位（fast 只做轮换）
     },
+    # v15.10：council 联网工具（执行员自搜 + 验证员冲突复核，经宿主 ctx.web 只读执行）
+    # v15.11：分池记账（exec/verifier 各一池）+ run 级 backstop；synth 保持无工具
+    "tools": {
+        "enabled": True,            # 总开关（关=回到纯 prompt，好调试/省时间）
+        "execMaxToolRounds": 3,     # 每 exec 调用最多工具轮数
+        "verifierMaxToolRounds": 2,  # 每 verifier 调用最多工具轮数（针对性复核）
+        "execPool": 60,             # 执行员池（发现主力）
+        "verifierPool": 60,         # 验证员池（独立核实，客观性发动机，专款专用）
+        "runBackstop": 500,         # 整 run 总闸（平时碰不到，只防抽风无底洞）
+        "searchMaxResults": 5,      # 每次 web_search 最多返回来源数
+    },
     # 熔断器（三态 + 指数退避 + 半开探测）
     "circuit": {
         "failureThreshold": 3,     # 窗口内连续失败数触发熔断
@@ -67,7 +78,6 @@ DEFAULTS = {
         "allowlist": [],           # P0-2：候选池 allowlist（空=不启用；填 baseModel 白名单）
         "staticEligibilityPreFilter": True,  # P0-2：静态不合格候选（identityUnknown/stable=false/自验禁令）在评分前剔除，只记一条 summary 事件
         "rankNormalize": True,     # v15.3：能力分 rank 归一化（同质化治理，见 selector.build_rank_table）
-        "minVendors": 3,           # v15.10：vendor 数硬校验阈值（ADR-002 跨厂商互验硬假设；<N 直接抛错阻断，见 vendor_guard.assert_vendor_min）
     },
     # 终止策略
     "terminator": {
@@ -86,10 +96,13 @@ DEFAULTS = {
         "minScoreChange": 0.5,     # 最小改动阈值：|Δ|<0.5 不写分只记样本（防噪声）
         "mergeWeight": 0.7,        # 融合时 runtime 分权重上限（w × mergeWeight）
         "zToScoreScale": 2.5,      # z-score → 分制偏移系数
-        "autoApply": True,         # v15.4（the maintainer decided全程无人值守）：run 收尾统一写 pending diff，
+        "autoApply": True,         # v15.4（Robert 拍板全程无人值守）：run 收尾统一写 pending diff，
                                    # 插件每日 04:30 漂移体检通过后自动 --apply（apply_pending 内自带
                                    # _drift_paused 体检拒绝 + baseHash 校验 + 写前校验三层安全网）
         "requireHeteroScorer": True,  # P0-5：写档案前强制 scoredBy ≠ 被评模型（同源样本拒绝）
+        "pauseEscalateRuns": 7,     # 2026-09-06 pause 上限：连续暂停 N 次升级为
+                                    # judge_drift_pause_escalated（只告警，不自动解封/重建基线；
+                                    # 基线重建永远人工 --init-baseline）。0 = 禁用升级（永不 escalate）。
     },
     # 成本对账（P0-3）
     "cost": {
@@ -108,11 +121,14 @@ DEFAULTS = {
         "staleHaltDays": 3,        # 落后 ≥3 个交易日 → 信息级标记（v15.4 起不再拒绝开跑）
     },
     # judge 漂移监控（金标集自评）
+    # null-means-auto：judgeModel/judge2Model 为 None（JSON null）时自动选择，
+    #   解析顺序 = 显式 params 值 > judge_select() 自动选择 > last-known-good 文件；
+    #   现有 council-params.json 中的显式模型名继续生效（向后兼容，无需改文件）。
     "judgeDrift": {
         "enabled": True,
-        "judgeModel": "MiniMax-M3",
+        "judgeModel": None,  # null = 自动（judge_select 按评卷分排序，无数据时按能力分均值回退）
         "judgeThinking": "medium",
-        "judge2Model": "deepseek-v4-flash",  # P1-2：异源第二 judge 交叉验证
+        "judge2Model": None,  # null = 自动（P1-2 异源第二 judge 交叉验证，自动避开主 judge）
         "judge2Thinking": "low",
         "alertThreshold": 1.0,     # 金标集均分相对基线的偏差超过 1.0 分 → 告警
         "pauseWriteDrift": 0.5,    # P1-2：|drift| ≥ 0.5 → 暂停能力档案回写（update_capabilities 拒绝）

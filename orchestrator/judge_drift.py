@@ -31,11 +31,16 @@ try:
     from .config_loader import now_shanghai, max_tokens_for_model, thinking_param
     from .stream_llm import call_stream
     from . import params as params_mod
+    from . import judge_select as judge_select_mod
 except ImportError:
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     from config_loader import now_shanghai, max_tokens_for_model, thinking_param
     from stream_llm import call_stream
     import params as params_mod  # noqa: E402
+    try:
+        import judge_select as judge_select_mod  # noqa: E402
+    except ImportError:
+        judge_select_mod = None
 
 BASE = Path(__file__).resolve().parent.parent  # council/
 GOLDEN = BASE / "benchmark" / "golden" / "golden-set.json"
@@ -72,9 +77,54 @@ def _drift_params() -> dict:
     return params_mod.load().get("judgeDrift", params_mod.DEFAULTS["judgeDrift"])
 
 
+def _explicit_param(dp: dict, key: str):
+    """显式 params 值：非空字符串才算显式（None/空串 = 走自动选择）。"""
+    v = dp.get(key)
+    return v.strip() if isinstance(v, str) and v.strip() else None
+
+
+def _auto_ranked(banned: list) -> list:
+    """judge_select 自动排名（失败一律放空，由调用方接 last-known-good）。"""
+    if judge_select_mod is None:
+        return []
+    try:
+        return judge_select_mod.resolve_auto(banned_base_models=banned) or []
+    except Exception:
+        return []
+
+
 def _judge_model() -> tuple:
+    """解析顺序：显式 params > judge_select() > last-known-good 文件。"""
     dp = _drift_params()
-    return dp.get("judgeModel", "MiniMax-M3"), dp.get("judgeThinking", "medium")
+    thinking = dp.get("judgeThinking") or "low"
+    explicit = _explicit_param(dp, "judgeModel")
+    if explicit:
+        return explicit, thinking
+    ranked = _auto_ranked([])
+    if ranked:
+        return ranked[0]
+    if judge_select_mod is not None:
+        try:
+            lkg = judge_select_mod.last_known_good(banned_base_models=[])
+        except Exception:
+            lkg = None
+        if lkg:
+            return lkg
+    raise RuntimeError("judge 无法解析：params judgeModel 为空且自动选择无可用候选")
+
+
+def _judge2_model(dp: dict, primary_model: str) -> tuple:
+    """第二 judge：显式 params 优先，否则自动选择并 ban 掉主 judge（异源交叉验证）。
+    自动无候选 → (None, thinking)，调用方跳过交叉验证（与旧行为一致）。"""
+    thinking = dp.get("judge2Thinking") or "low"
+    explicit = _explicit_param(dp, "judge2Model")
+    if explicit:
+        return explicit, thinking
+    banned = [primary_model.strip()] if isinstance(primary_model, str) and primary_model.strip() else []
+    ranked = _auto_ranked(banned)
+    if ranked:
+        return ranked[0]
+    return None, thinking
 
 
 def _preflight_quota(*models) -> None:
@@ -343,8 +393,7 @@ def run(init: bool = False, dry: bool = False, max_runtime_s: float = 540.0,
     golden = _load_golden()
     items = golden.get("items") or []
     judge_model, judge_thinking = _judge_model()
-    j2_model = dp.get("judge2Model") or None
-    j2_thinking = dp.get("judge2Thinking") or "low"
+    j2_model, j2_thinking = _judge2_model(dp, judge_model)
     if dry:
         return {"dry": True, "items": len(items),
                 "judge": f"{judge_model}@{judge_thinking}",

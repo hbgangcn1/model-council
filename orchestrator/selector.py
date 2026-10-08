@@ -16,7 +16,7 @@ v15.2（2026-08-24 元评审 P0-2/P0-4/P0-3/P2-1/P2-2/P1-3）：
 - effective_cost_cny 增加 baseCostCny（不含 thinking/quota 规划系数）供成本对账同口径比较（P0-3）；
 - fx_status() 汇率陈旧黄灯/停机等级（P2-2）；Pareto 前沿软加分（P2-1）；Elo 软惩罚（P1-3）。
 
-v15.4（2026-08-24 the maintainer decided，§14-v15.4）：
+v15.4（2026-08-24 Robert 拍板，§14-v15.4）：
 - 删除档位→thinking 硬约束（maxThinkingRank）——每档位视作不同模型，selector 完全自主；
 - λ 温和化（能力分主导、成本微调封顶 0.5、同分 tie-break）+ paretoEnabled 默认开；
 - 延迟冷启动代理（THINKING_LATENCY_PROXY，档位越高假设越慢，遥测回填后切真实值）；
@@ -50,6 +50,10 @@ BASE = Path(__file__).resolve().parent.parent  # council/
 THINKING_ORDER = {
     "deepseek": ["off", "low", "high", "max"],
     "MiniMax": ["off", "minimal", "low", "medium", "high"],
+    # v15.9（2026-09-12）：muse 家族档位表——此前未知家族统一套 deepseek 表，
+    # muse 的 minimal/medium 永被 thinking_not_allowed 误杀（5 候选先废 2 个）。
+    # 取值与 pricing-profiles.json 里 opencode-zen.thinkingMult 的键对齐。
+    "muse": ["minimal", "low", "medium", "high", "max"],
 }
 
 # v15.4：延迟冷启动代理（P50 毫秒，保守假设——档位越高思考越久）。
@@ -87,26 +91,10 @@ def load_elo() -> dict:
 # ---------------- 数据加载 ----------------
 
 def load_capabilities() -> dict:
-    p = BASE / "capabilities.json"
-    if not p.exists():
-        return {"schemaVersion": 2, "revision": 0, "models": {}, "dimensions": []}
-    doc = json.loads(p.read_text(encoding="utf-8"))
-    # v15.10：配置加载时 vendor 数硬校验（ADR-002 跨厂商互验硬假设）。
-    # 候选池 < min_vendors 静默自评风险，详见 vendor_guard.assert_vendor_min。
-    try:
-        from . import vendor_guard  # 软引用：测试环境缺模块不影响 load
-        vendor_guard.assert_vendor_min(doc, source="selector")
-    except ImportError:
-        pass
-    except vendor_guard.VendorMinError:
-        raise  # 透传硬校验异常，配置加载期 fail-fast
-    return doc
+    return json.loads((BASE / "capabilities.json").read_text(encoding="utf-8"))
 
 def load_pricing() -> dict:
-    p = BASE / "pricing-profiles.json"
-    if not p.exists():
-        return {"providers": {}, "exchangeRates": {}}
-    return json.loads(p.read_text(encoding="utf-8"))
+    return json.loads((BASE / "pricing-profiles.json").read_text(encoding="utf-8"))
 
 def load_balance_snapshot() -> dict:
     p = BASE / "balance-snapshot.json"
@@ -228,6 +216,8 @@ def quota_factor(provider: str, balance: dict) -> float:
     bal = balance.get(f"{provider}:balance")
     if bal is None:
         return 2.0  # 查不到 → 保守
+    if bal <= 0:
+        return float("inf")  # 零/负余额=欠费：硬剔除（2026-09-12 实测 -0.55 被当充裕致整轮失败）
     # 与「月消耗速率」比较：用快照里附带的估算
     monthly = balance.get(f"{provider}:monthly_estimate")
     if monthly and monthly > 0:
@@ -326,7 +316,7 @@ def build_rank_table(caps_models: dict) -> dict:
 
     元评审实证（2026-08-24）：16 条目 9 维能力分集中在 9.5-10，Σ权重×能力分项近似常数，
     selector 退化（区分度≈0）。rank 归一化把每维分数映射到排序位置：
-    **第一名 100 分、最末名 1 分**（v15.4 the maintainer decided，百分制线性展开）。
+    **第一名 100 分、最末名 1 分**（v15.4 Robert 拍板，百分制线性展开）。
     同分取平均排名（并列不虚排）；dim 内仅 1 个有值 → 无法归一化，回退中位 50.5。
     档案仍存绝对分（0-10，EMA 融合在绝对空间），本表是选择/展示层的派生数据。"""
     dims = set()
@@ -530,14 +520,19 @@ def passes_guards(cand: dict, ctx: dict) -> tuple:
         reasons["thinking_not_allowed"] = (
             {"allowedThinking": allowed_t},
             {"thinking": cand.get("thinking")})
-    # 熔断（半开探测：仅放行一个探测候选）
+    # 熔断（半开探测：跨进程互斥见 _probe_begin）
+    # v15.9 peek 模式：council 分派轮内要做多次 select（每子任务 exec+verifier 各一次），
+    # 排序阶段只「看」半开状态、不占位——否则首个 select 就烧掉探测位，
+    # 而它选中的根本不是这个候选（2026-09-12 实测：muse 探测位被 exec-select 烧掉，
+    # verifier 全空）。占位推迟到真正落入 assignment 时认领；轮内同伴共享同一探测位
+    # （失败由 record_failure 升级退避接管，不在这里限并发）。
     cstate = _circuit_state(cand["baseModel"])
     if cstate == "open":
         reasons["circuit_open"] = (
             {"circuitState": "closed"},
             {"circuitState": cstate, "baseModel": cand["baseModel"]})
     elif cstate == "half_open":
-        if not _probe_begin(cand["baseModel"]):
+        if not ctx.get("probe_peek") and not _probe_begin(cand["baseModel"]):
             reasons["circuit_half_open_probing"] = (
                 {"probeConcurrency": 1},
                 {"probing": True, "baseModel": cand["baseModel"]})
@@ -576,8 +571,11 @@ def passes_guards(cand: dict, ctx: dict) -> tuple:
     return False, code
 
 def _allowed_thinking(base_model: str) -> list:
-    if base_model.startswith("MiniMax"):
-        return ["off", "minimal", "low", "medium", "high"]
+    """档位合法性表（与 THINKING_ORDER 同源；未知家族回退 deepseek 表）。"""
+    bm = base_model or ""
+    for prefix, order in THINKING_ORDER.items():
+        if bm.startswith(prefix):
+            return list(order)
     return ["off", "low", "high", "max"]
 
 # ---------------- 熔断器（三态 + 指数退避 + 半开探测） ----------------
@@ -645,6 +643,95 @@ def _probe_begin(model: str) -> bool:
     st[model] = entry
     _write_circuit(st)
     return True
+
+def substitute_eligible(cand: dict, balance: dict = None) -> tuple:
+    """替补 verifier 资格检查（与主路护栏同口径，2026-09-12 新增：
+    替补曾直读 caps 无任何护栏，欠费 deepseek 被选中致整轮 0 分）。
+    v15.9：半开熔断允许替补（此处是真实指派，直接占位认领；占不到则拒绝）。
+    主路排序阶段的占位见 passes_guards 的 probe_peek。返回 (ok, reason)。"""
+    if not cand.get("stable", True):
+        return False, "unstable"
+    if cand.get("identityUnknown"):
+        return False, "identity_unknown"
+    if cand.get("thinking") not in _allowed_thinking(cand.get("baseModel") or ""):
+        return False, "thinking_not_allowed"
+    try:
+        qf = quota_factor(cand.get("provider") or "", balance if balance is not None else load_balance_snapshot())
+    except Exception:
+        qf = 2.0
+    if qf == float("inf"):
+        return False, "balance_exhausted"
+    try:
+        cs = _circuit_state(cand.get("baseModel") or "")
+    except Exception:
+        cs = "closed"
+    if cs == "open":
+        return False, "circuit_open"
+    if cs == "half_open":
+        try:
+            if not _probe_begin(cand.get("baseModel") or ""):
+                return False, "circuit_half_open_probing"
+        except Exception:
+            pass
+    return True, "ok"
+
+
+def vendor_of(cand: dict) -> str:
+    """候选厂商分组——档案 vendorGroup 优先，缺失时按 provider 规则回退。
+    （council_v14._vendor_of_cand 的同源实现，v15.9 上移至 selector 供两处共用。）"""
+    vg = cand.get("vendorGroup")
+    if vg:
+        return str(vg)
+    p = cand.get("provider") or ""
+    if p == "deepseek-official":
+        return "deepseek"
+    if p == "minimax-cn":
+        return "minimax"
+    return p or "unknown"
+
+
+def is_effectively_available(cand: dict, balance: dict = None) -> tuple:
+    """开跑可用判定（v15.9，Robert 原则：不动模型池，开跑时看哪些能用；
+    余额不足=当前不可用）。stable/身份/档位/余额/熔断-open 任一不过即不可用；
+    half_open 算可用（带 1 个探测位）。只读不写（不记事件、不占探测位），
+    快照由调用方统一落盘。返回 (ok, reason)。"""
+    if not cand.get("stable", True):
+        return False, "unstable"
+    if cand.get("identityUnknown"):
+        return False, "identity_unknown"
+    if cand.get("thinking") not in _allowed_thinking(cand.get("baseModel") or ""):
+        return False, "thinking_not_allowed"
+    try:
+        qf = quota_factor(cand.get("provider") or "",
+                          balance if balance is not None else load_balance_snapshot())
+    except Exception:
+        qf = 2.0
+    if qf == float("inf"):
+        return False, "balance_exhausted"
+    try:
+        cs = _circuit_state(cand.get("baseModel") or "")
+    except Exception:
+        cs = "closed"
+    if cs == "open":
+        return False, "circuit_open"
+    return True, ("half_open" if cs == "half_open" else "ok")
+
+
+def effective_vendors(models: dict, balance: dict = None) -> tuple:
+    """有效厂商基数（v15.9）：返回 (vendors, availability)。
+    vendors 为可用厂商分组列表（保序去重，half_open 计入）；
+    availability 为 {cid: {"ok": bool, "reason": str, "vendor": str}} 全量快照。
+    council 的容量截断/配额/k 值必须用此基数——此前用「档案有谁」导致
+    死厂商占配额（2026-09-12 实测：3 厂商基数下 s3/s4 饿死、验证者全空）。"""
+    vendors = []
+    availability = {}
+    for cid, cand in (models or {}).items():
+        ok, reason = is_effectively_available(cand, balance)
+        v = vendor_of(cand)
+        availability[cid] = {"ok": ok, "reason": reason, "vendor": v}
+        if ok and v not in vendors:
+            vendors.append(v)
+    return vendors, availability
 
 def record_failure(model: str):
     """失败结算：半开探测失败 → 立即回到 open 并加倍退避；closed 下窗口内累计 N 次熔断。

@@ -1,0 +1,13 @@
+2026-09-01 08:00:01 INFO  svc_a starting (v1.4.0)
+2026-09-01 08:00:02 INFO  svc_a connected to db
+2026-09-01 08:01:10 ERROR E101 connection timeout (req=1001)
+2026-09-01 08:02:44 INFO  svc_a heartbeat ok
+2026-09-01 08:03:19 ERROR E102 auth token expired (req=1002)
+2026-09-01 08:05:02 ERROR E101 connection timeout (req=1003)
+2026-09-01 08:07:31 INFO  svc_a heartbeat ok
+2026-09-01 08:09:55 ERROR E103 disk usage 91% (req=1004)
+2026-09-01 08:11:20 ERROR E101 connection timeout (req=1005)
+2026-09-01 08:13:08 INFO  svc_a heartbeat ok
+2026-09-01 08:15:47 ERROR E102 auth token expired (req=1006)
+2026-09-01 08:18:33 ERROR E101 connection timeout (req=1007)
+2026-09-01 08:20:00 INFO  svc_a shutting down cleanly

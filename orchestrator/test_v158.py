@@ -37,8 +37,6 @@ def test_classify():
     check("1039 token limit -> rate", c("1039 token limit exceeded") == "rate")
     check("500 -> rate", c("500 internal error") == "rate")
     check("400 参数错 -> unknown", c("400 invalid param: max_tokens") == "unknown")
-    check("空完成 -> empty", c('model "m" returned a completed response with no content') == "empty")
-    check("EMPTY_RESPONSE 码 -> empty", c("EMPTY_RESPONSE quota-ish? no") == "empty")
 
 
 def test_raise_types():
@@ -55,12 +53,6 @@ def test_raise_types():
         check("rate抛错", False)
     except LLMRetryableError:
         check("rate抛LLMRetryableError", True)
-    try:
-        dsh_bridge._raise_classified("p: ", 'model "m" returned a completed response with no content')
-        check("empty抛错", False)
-    except LLMRetryableError as e:
-        check("empty抛LLMRetryableError（短退避可重试）", True)
-        check("empty退避5秒（非限流30秒量级）", getattr(e, "retry_after_s", None) == 5.0)
     try:
         dsh_bridge._raise_classified("p: ", "400 invalid param")
         check("unknown抛错", False)

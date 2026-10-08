@@ -137,7 +137,7 @@ def update() -> dict:
         with HISTORY_FILE.open("a", encoding="utf-8") as f:
             f.write(json.dumps(rates, ensure_ascii=False) + "\n")
         return rates
-    # 第三级：全失败 → 最近一次成功汇率（the maintainer decided：单次 run 消耗仅几分钱，
+    # 第三级：全失败 → 最近一次成功汇率（Robert 拍板：单次 run 消耗仅几分钱，
     # 汇率波动影响微乎其微，出结果是终极使命——绝不停机，只降级+标记）
     prev = _load_previous()
     if prev:

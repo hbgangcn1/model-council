@@ -11,30 +11,75 @@
     "deepseek-official": {
       "type": "pay_per_token",
       "timeFactor": {
-        "peakHours": [["09:00", "12:00"], ["14:00", "18:00"]],
+        "peakHours": [
+          [
+            "09:00",
+            "12:00"
+          ],
+          [
+            "14:00",
+            "18:00"
+          ]
+        ],
         "workdaysOnly": true,
         "peak": 1.0,
         "offpeak": 0.5,
-        "note": "Beijing timezone; weekdays peak hours only."
+        "note": "北京时区；周末全天低谷（2026-08-23 起）。官方计费按整点窗口，分桶与账单口径一致。"
       },
       "thinkingMult": {
         "off": 1.0,
         "low": 1.3,
         "high": 2.3,
         "max": 2.3,
-        "default": 1.2
+        "default": 1.2,
+        "note": "H3 校准入口：high≈2.3× base（2026-08-24 council 评审实测口径）；thinking token 按输出价计费"
       },
       "cacheHitRateDefault": 0.0,
       "models": {
         "deepseek-v4-pro": {
-          "inputCnyPerMTok": {"peak": 9.0, "offpeak": 4.5},
-          "outputCnyPerMTok": {"peak": 27.0, "offpeak": 13.5},
-          "cacheInputCnyPerMTok": {"peak": 0.3, "offpeak": 0.15}
+          "inputCnyPerMTok": {
+            "peak": 9.0,
+            "offpeak": 4.5
+          },
+          "outputCnyPerMTok": {
+            "peak": 27.0,
+            "offpeak": 13.5
+          },
+          "cacheInputCnyPerMTok": {
+            "peak": 0.3,
+            "offpeak": 0.15
+          },
+          "note": "DeepSeek-V4-Pro-0813；单价来自 dsh-cost-monitor DS_PRICES（api-docs.deepseek.com 官方定价，2026-09-13 核对；9/14 后继续提供，价格不变）"
+        },
+        "deepseek-flash": {
+          "inputCnyPerMTok": {
+            "peak": 2.0,
+            "offpeak": 1.0
+          },
+          "outputCnyPerMTok": {
+            "peak": 8.0,
+            "offpeak": 4.0
+          },
+          "cacheInputCnyPerMTok": {
+            "peak": 0.04,
+            "offpeak": 0.02
+          },
+          "note": "DeepSeek-V4.1-Flash（支持 vision）；2026-09-13 官方新定价"
         },
         "deepseek-v4-flash": {
-          "inputCnyPerMTok": {"peak": 3.0, "offpeak": 1.5},
-          "outputCnyPerMTok": {"peak": 9.0, "offpeak": 4.5},
-          "cacheInputCnyPerMTok": {"peak": 0.1, "offpeak": 0.05}
+          "inputCnyPerMTok": {
+            "peak": 2.0,
+            "offpeak": 1.0
+          },
+          "outputCnyPerMTok": {
+            "peak": 8.0,
+            "offpeak": 4.0
+          },
+          "cacheInputCnyPerMTok": {
+            "peak": 0.04,
+            "offpeak": 0.02
+          },
+          "note": "旧名别名：仍可调用，由 V4.1-Flash 提供服务、按 Flash 价计费（2026-09-13 官方说明）"
         }
       },
       "balanceApi": "deepseek/balance",
@@ -48,16 +93,53 @@
         "low": 1.2,
         "medium": 1.6,
         "high": 2.0,
-        "default": 1.2
+        "default": 1.2,
+        "note": "H3 校准入口：免费池边际成本 0，系数仅用于稀缺性放大前的相对比较"
       },
       "models": {
         "MiniMax-M3": {
-          "inputCnyPerMTok": {"peak": 0, "offpeak": 0},
-          "outputCnyPerMTok": {"peak": 0, "offpeak": 0}
+          "inputCnyPerMTok": {
+            "peak": 0,
+            "offpeak": 0
+          },
+          "outputCnyPerMTok": {
+            "peak": 0,
+            "offpeak": 0
+          },
+          "note": "年费/免费池，边际成本 0，稀缺性在 5h/周窗口额度"
         }
       },
       "quotaApi": "minimax/token_plan",
-      "quotaWindows": ["5h", "week"],
+      "quotaWindows": [
+        "5h",
+        "week"
+      ],
+      "maxConcurrency": 3
+    },
+    "opencode-zen": {
+      "type": "free_pool",
+      "thinkingMult": {
+        "minimal": 1.05,
+        "low": 1.2,
+        "medium": 1.6,
+        "high": 2.0,
+        "max": 2.0,
+        "default": 1.2,
+        "note": "H3 校准入口：免费模型边际成本 0，系数仅用于稀缺性放大前的相对比较"
+      },
+      "models": {
+        "muse-spark-1.3-contributor-free": {
+          "inputCnyPerMTok": {
+            "peak": 0,
+            "offpeak": 0
+          },
+          "outputCnyPerMTok": {
+            "peak": 0,
+            "offpeak": 0
+          },
+          "note": "Contributor Free 免费档，边际成本 0（2026-09-06 Robert 确认在用；无剩余额度指标，按 IP 按自然日限流，超限 429 次日 UTC 0 点重置）"
+        }
+      },
       "maxConcurrency": 3
     }
   }

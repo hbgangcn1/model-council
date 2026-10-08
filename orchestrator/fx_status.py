@@ -1,4 +1,4 @@
-"""P2-2：汇率陈旧状态 CLI（供 host-bridge plugin 插件 run_council 前置检查）。
+"""P2-2：汇率陈旧状态 CLI（供 dsh-council 插件 run_council 前置检查）。
 
 用法：python orchestrator/fx_status.py
 退出码：0=正常/黄灯 / 2=停机（落后 ≥ staleHaltDays 个交易日，应暂停 CNY 记账）。

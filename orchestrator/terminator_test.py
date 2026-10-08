@@ -15,7 +15,7 @@ def check(name, cond):
         FAILED.append(name)
 
 def test_terminator():
-    print("[terminator v15.5 判停标准：θ=9.5 / 3 轮窗口极差<0.2 / 无轮数上限]")
+    print("[terminator v15.13 判停标准：主判据=连续未刷新最好成绩 / 墙钟已降级为失控护栏]")
     # 场景1：硬门禁失败 → rework
     st = terminator.RoundState(round_no=1)
     a, r = terminator.decide(st, True, "h1", 9.5)
@@ -28,12 +28,14 @@ def test_terminator():
     st = terminator.RoundState(round_no=20, s_history=[6.0, 6.6], rework_topics=["h1", "h2"])
     a, r = terminator.decide(st, True, "h3", 9.5)
     check("硬门禁 r=20 清单不同→仍 rework（无轮数上限）", a == "rework")
-    # 场景3b（v15.5b）：硬门禁连续 3 轮未消除（清单每轮变化）→ stalled（防无限返工）
+    # 场景3b（v15.13 改）：原「硬门禁连续 3 轮未消除→stalled」判据已删除——
+    # 它实测触发 21 次（比墙钟 11 次还多），会砍掉仍在提升的 run。现在由增长枯竭统一负责，
+    # 只要分数还在刷新最好成绩就继续返工。
     st = terminator.RoundState(round_no=3, s_history=[6.0, 6.1],
                                hard_gate_failures=[True, True],
                                rework_topics=["h1", "h2"])
     a, r = terminator.decide(st, True, "h3", 9.5)
-    check("硬门禁连续3轮未消除→stalled（防无限返工）", a == "stalled")
+    check("硬门禁连续3轮不再强制 stalled（v15.13 删除该判据）→ rework", a == "rework")
     # 场景3c：硬门禁连续 2 轮（第 2 次失败）→ 仍 rework
     st = terminator.RoundState(round_no=2, s_history=[6.0],
                                hard_gate_failures=[True],
@@ -64,10 +66,20 @@ def test_terminator():
     st = terminator.RoundState(round_no=30, s_history=[9.0, 9.1, 9.35])
     a, r = terminator.decide(st, False, "", 9.5)
     check("r=30 有增长→继续 rework（无轮数上限）", a == "rework")
-    # 场景10：墙钟超预算 → forced（最高优先级，即使已达标）
+    # 场景10（v15.13 语义变更）：墙钟已降级为"失控护栏"。只有达到 runawayGuardS 才 forced；
+    # 传进来的 wall_budget_s 现在就是护栏值（默认 10800s=3h），不再是收敛预算。
     st = terminator.RoundState(round_no=1, s_history=[9.6])
-    a, r = terminator.decide(st, False, "", 9.5, wall_elapsed_s=1700.0, wall_budget_s=1680.0)
-    check("墙钟≥预算→forced（优先级最高）", a == "forced")
+    a, r = terminator.decide(st, False, "", 9.5, wall_elapsed_s=11000.0, wall_budget_s=10800.0)
+    check("达到失控护栏→forced（极端兜底，非常态）", a == "forced")
+    # 场景10b（v15.13 新增）：跑了 50 分钟仍远未到护栏 → 不得因"跑太久"被终止。
+    # 这是本次改动的核心诉求：取消墙钟不再破坏收敛。
+    st = terminator.RoundState(round_no=5, s_history=[7.0, 7.3, 7.6, 7.9, 8.2])
+    a, r = terminator.decide(st, False, "", 9.5, wall_elapsed_s=3000.0, wall_budget_s=10800.0)
+    check("跑了3000s仍在提升→不得 forced（墙钟不再限制收敛）", a == "rework")
+    # 场景10c（v15.13 新增）：震荡但不提升 → 由增长枯竭收尾（而不是等墙钟）
+    st = terminator.RoundState(round_no=5, s_history=[7.9, 7.2, 7.6, 7.1, 7.4])
+    a, r = terminator.decide(st, False, "", 9.5, wall_elapsed_s=3000.0, wall_budget_s=10800.0)
+    check("震荡不提升→early_stop（主判据接手）", a == "early_stop")
     # 场景11：震荡防抖——+0.19/-0.19 交替，3 轮窗口极差 0.38 仍继续；5 轮窗口若极差<0.2 会停
     st = terminator.RoundState(round_no=3, s_history=[9.0, 9.19, 9.0])
     a, r = terminator.decide(st, False, "", 9.5)

@@ -6,7 +6,7 @@
   - 误以为 council.py 是 council 的真正 orchestrator 入口
 
 事实（v15.6+）：
-  - host-bridge plugin 调的是 council_v14.py（不是 council.py）
+  - dsh-council 调的是 council_v14.py（不是 council.py）
   - council_v14.py 用 selector.select() 按 capabilities.json 能力分自动选模型
   - presets.json 只给 decomposer 一个角色分配 model；评审/验证/综合完全自动化
 
@@ -21,25 +21,39 @@ from pathlib import Path
 
 COUNCIL_BASE = Path(__file__).resolve().parent
 DSH_BASE = COUNCIL_BASE.parent
-DSH_COUNCIL_PLUGIN = DSH_BASE / "profiles" / "web" / "node_modules" / "host-bridge plugin"
+DSH_COUNCIL_PLUGIN = DSH_BASE / "profiles" / "web" / "node_modules" / "dsh-council"
 
 
 def find_spawn_targets():
-    """扫描 host-bridge plugin/index.js 找所有 spawn / runPy 调用，提取 python 入口脚本名。
-    返回相对 COUNCIL_BASE 的路径（如 'orchestrator/council_v14.py' 或 'benchmark/summary.py'）。"""
+    """扫描 dsh-council/index.js 找所有 Python 调用，提取入口。
+    覆盖三种写法（历史重构产生）：
+      - 旧式 spawnPy('x.py' / runPy('x.py'（v15.6 初版，已无现行调用，仅兼容）
+      - py('council_v14.py', ...) shell 拼串（现行 council 跑分/评审主路径）
+      - runPyChecked('orchestrator.xxx' / 'benchmark.xxx'（现行 -m 模块模式，定时链路）
+    返回相对 COUNCIL_BASE 的路径（如 'orchestrator/council_v14.py'）；
+    -m 模块名同时保留 dotted 形式供展示（target 字符串本身即相对路径点变体除外）。"""
     index_js = DSH_COUNCIL_PLUGIN / 'index.js'
     if not index_js.exists():
         return []
     text = index_js.read_text(encoding='utf-8')
     targets = set()
+    # 1. 旧式（兼容）
     for m in re.finditer(r"(?:spawnPy|runPy)\s*\(\s*['\"]([^'\"]+\.py)['\"]", text):
         targets.add(m.group(1))
+    # 2. py('script.py', ...) → orchestrator/script.py
+    for m in re.finditer(r"""\bpy\s*\(\s*['"]([^'"]+\.py)['"]""", text):
+        base = Path(m.group(1)).name
+        targets.add("orchestrator/" + base)
+    # 3. runPyChecked('a.b.c', ...) → a/b/c.py
+    for m in re.finditer(r"""\brunPyChecked\s*\(\s*['"]([A-Za-z_][\w]*(?:\.[\w]+)+)['"]""", text):
+        dotted = m.group(1)
+        targets.add(dotted.replace(".", "/") + ".py")
     return sorted(targets)
 
 
 def resolve_path(tgt: str) -> Path:
     """把 spawn target 字符串解析为绝对路径。
-    host-bridge plugin spawn 路径相对的是 COUNCIL_BASE（如 'orchestrator/council_v14.py'）。
+    dsh-council spawn 路径相对的是 COUNCIL_BASE（如 'orchestrator/council_v14.py'）。
     找不到时尝试常见子目录 fallback（benchmark/bench/ 等），避免误报"file not found"。"""
     name = Path(tgt).name
     candidates = [
@@ -89,10 +103,10 @@ def find_model_sources_in_file(path: Path):
             "usage": "model pool (caps = scored model × thinking tuples)",
         })
 
-    # 4. host-bridge 引用
+    # 4. DSH bridge 引用
     if re.search(r"bridge_stream|/api/council/llm-stream|llm-pi-ai", text):
         sources.append({
-            "source": "host-bridge /api/council/llm-stream bridge",
+            "source": "DSH /api/council/llm-stream bridge",
             "usage": "v15.6 L3: HTTP call to DSH, DSH internally invokes pi-ai",
         })
 
@@ -110,10 +124,10 @@ def find_model_sources_in_file(path: Path):
 def is_trap_name(filename: str) -> bool:
     """判断文件名是否容易被误认为"council 入口"。
     trap 触发条件：文件名看起来像"orchestrator 入口"（如 council*.py / orchestrator.py / main.py / run.py），
-    但实际不是 host-bridge plugin 实际 spawn 的脚本。
+    但实际不是 dsh-council 实际 spawn 的脚本。
     """
     base = Path(filename).name
-    # 真实入口白名单（host-bridge plugin 实际 spawn 的脚本）
+    # 真实入口白名单（dsh-council 实际 spawn 的脚本）
     real_entries = {"council_v14.py"}  # 当前 v15.6 唯一真正的 council orchestrator
     if base in real_entries:
         return False
@@ -138,7 +152,8 @@ def main():
     report = {
         "dsh_council_spawn_targets": targets,
         "orchestrator_py_files": all_py,
-        "actual_orchestrator": "council_v14.py" if "council_v14.py" in targets else "(unknown)",
+        # targets 是相对路径（如 orchestrator/council_v14.py），按 basename 比对
+        "actual_orchestrator": "council_v14.py" if "council_v14.py" in {Path(t).name for t in targets} else "(unknown)",
         "per_file_model_sources": {},
         "warnings": [],
         "trap_files": [],  # 容易被误认为入口的 .py（仅匹配 trap 命名）
@@ -148,7 +163,7 @@ def main():
         path = resolve_path(tgt)
         report["per_file_model_sources"][tgt] = find_model_sources_in_file(path)
 
-    # 陷阱检查：哪些 .py 文件**不是** host-bridge plugin 入口但**名字像入口**容易被误认为？
+    # 陷阱检查：哪些 .py 文件**不是** dsh-council 入口但**名字像入口**容易被误认为？
     actual_entry_basenames = {Path(t).name for t in targets}
     for p in all_py:
         if p in actual_entry_basenames:
@@ -160,7 +175,7 @@ def main():
             report["trap_files"].append({
                 "file": p,
                 "model_sources": src.get("sources", []),
-                "warning": f"⚠️ {p} 名字像入口但 host-bridge plugin 不调它——可能误导（{len(src.get('sources', []))} 处模型来源定义）"
+                "warning": f"⚠️ {p} 名字像入口但 dsh-council 不调它——可能误导（{len(src.get('sources', []))} 处模型来源定义）"
             })
 
     # preset 误判检查
@@ -196,7 +211,7 @@ def main():
     print(" Council Orchestrator 审计报告（v15.6）")
     print("=" * 70)
     print()
-    print(f"📍 host-bridge plugin 实际 spawn 的 Python 入口:")
+    print(f"📍 dsh-council 实际 spawn 的 Python 入口:")
     for tgt in targets:
         print(f"   • {tgt}")
     print()
@@ -240,11 +255,11 @@ def main():
     print("=" * 70)
     print(" 事实摘要（防止误判）：")
     print("=" * 70)
-    print("• host-bridge plugin 调的是 council_v14.py，**不是** council.py")
+    print("• dsh-council 调的是 council_v14.py，**不是** council.py")
     print("• council_v14.py 用 selector.select() 按 capabilities.json 自动选模型")
     print("• presets.json 的 roles 字段**只用于** decomposer 角色")
     print("• exec / verifier / synthesize 角色完全由 selector 自动按能力分选")
-    print("• 让新模型参与评审的正确做法：host adds model → Council UI 加进池 → 跑分 →")
+    print("• 让新模型参与评审的正确做法：DSH 加 model → Council UI 加进池 → 跑分 →")
     print("  capabilities.json 自动写入 → selector 下次自动按能力分选中")
     print("• **不要**通过改 presets.json 来让新模型参与评审（v15.5 时代的做法，已废）")
     print("=" * 70)

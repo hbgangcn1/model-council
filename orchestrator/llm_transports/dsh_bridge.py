@@ -22,6 +22,7 @@ import os
 import time
 import urllib.error
 import urllib.request
+import uuid
 from typing import Optional
 
 from ..llm_client import (
@@ -33,9 +34,26 @@ from ..llm_client import (
 )
 
 
+def bridge_session_id() -> str:
+    """桥接会话 ID（v15.9，根因见 DESIGN-v14.md v15.9）：
+    OpenCode Zen 要求每个会话带稳定的 session 标识（MissingSessionID 否则
+    免费档 400 拒绝）。DSH 主会话经 agent-loop 带 DSH session id 所以正常；
+    council 经桥调用从不带 id，muse 全挂。进程级稳定 = 单 run 稳定
+    （插件每 run 起一个 python 进程，同 run 内共享 id 还利于 prompt 缓存命中）。
+    环境变量 COUNCIL_SESSION_ID 可覆盖（调试/连续性需要时）。"""
+    env = os.environ.get("COUNCIL_SESSION_ID", "").strip()
+    if env:
+        return env
+    return f"dsh-council-{uuid.uuid4().hex[:12]}"
+
+
+_BRIDGE_SESSION_ID = bridge_session_id()
+
+
 DEFAULT_DSH_URL = "http://127.0.0.1:3080/api/council/llm-stream"
 DEFAULT_IDLE_TIMEOUT_S = 180  # 180s no-byte idle timeout (v15.3 spec)
 DEFAULT_TOTAL_TIMEOUT_S = 1800  # 30-minute hard ceiling (v15.3 spec)
+DEFAULT_TOOL_EXEC_TIMEOUT_S = 90  # tool-exec 单次执行上限（搜索/抓取）
 
 
 # ===================== 错误分类（限流要分"怎么限的"） =====================
@@ -170,11 +188,23 @@ class DSHBridgeClient(BaseLLMClient):
         self.total_timeout_s = total_timeout_s
 
     def _do_call(self, model, thinking_level, prompt, max_tokens, tools=None):
+        return self._post_llm(model, thinking_level, max_tokens, tools,
+                              {"prompt": prompt})
+
+    def call_messages(self, model, thinking_level, messages, tools, max_tokens):
+        """messages 形态单轮调用（v15.10 tool loop 用）：不经过 BaseLLMClient 的
+        重试（loop 层自己掌握重试/降级），直接调 _post_llm。返回 (text, meta)，
+        meta 可能带 tool_calls。"""
+        return self._post_llm(model, thinking_level, max_tokens, tools,
+                              {"messages": messages})
+
+    def _post_llm(self, model, thinking_level, max_tokens, tools, body_extra):
         payload = {
             "model": model,
-            "prompt": prompt,
             "max_tokens": max_tokens,
+            "session_id": _BRIDGE_SESSION_ID,
         }
+        payload.update(body_extra)
         if thinking_level:
             payload["level"] = thinking_level
         if tools:
@@ -199,6 +229,13 @@ class DSHBridgeClient(BaseLLMClient):
         finish_reason = "stop"
         dsh_error = None
         finish_error = None
+        pending_tool_calls = []  # v15.10：{event:"tool_calls", calls:[{id,name,arguments}]}
+        # v15.12f（2026-09-14）：空响应诊断用的事件计数。此前 "no content" 抛错时
+        # finish_reason / usage / 各类事件计数全被丢掉，只留一句完全不透明的话——
+        # 实测 deepseek-flash@max 间歇触发（8 样本里 3 次），无法判断到底是
+        # 「模型只吐了 reasoning 就停」「provider 回空」还是「delta 被谁吞了」。
+        ev_counts = {}
+        ev_bad_json = 0
         for ev in events:
             line = ev.strip()
             if not line or not line.startswith("data:"):
@@ -211,10 +248,12 @@ class DSHBridgeClient(BaseLLMClient):
             try:
                 ev_obj = json.loads(data_str)
             except json.JSONDecodeError:
+                ev_bad_json += 1
                 continue
             if not isinstance(ev_obj, dict):
                 continue  # 非对象载荷（如纯字符串行）直接跳过，不炸整轮
             event_type = ev_obj.get("event")
+            ev_counts[event_type] = ev_counts.get(event_type, 0) + 1
             if event_type == "text":
                 # DSH bridge streams with {event:"text", delta:"..."}; we accumulate
                 # `delta` chunks to reconstruct the full text output.
@@ -240,6 +279,16 @@ class DSHBridgeClient(BaseLLMClient):
                     finish_reason = reason
             elif event_type == "error":
                 dsh_error = ev_obj.get("error", "unknown")
+            elif event_type == "tool_calls":
+                # v15.10：插件把本轮累积的完整 tool call 一次性发出；
+                # 执行由调用方（tool_loop）负责，这里只透传。
+                for tc in ev_obj.get("calls") or []:
+                    if isinstance(tc, dict) and tc.get("name"):
+                        pending_tool_calls.append({
+                            "id": str(tc.get("id") or f"call_{len(pending_tool_calls)}"),
+                            "name": str(tc["name"]),
+                            "arguments": tc.get("arguments") or {},
+                        })
 
         # Handle timeout / network errors from meta.
         # HTTP 层 4xx（额度用尽常以 400/402/403 形式出现）不能当超时重试：
@@ -277,8 +326,22 @@ class DSHBridgeClient(BaseLLMClient):
             _raise_classified("DSH bridge provider error: ", str(dsh_error))
 
         text = "".join(text_parts).strip()
-        if not text:
-            raise LLMPermanentError("DSH bridge returned no text content")
+        if not text and not pending_tool_calls:
+            # 2026-09-06（评审回执）：无 finish_error 的纯空完成（如 adapter 升级后
+            # 不再翻译 empty）也走 empty 路径——文案与 _EMPTY_MARKERS 对齐，
+            # 让 bench _is_empty_response 能识别（短退避重试 + empty 状态）。
+            # v15.10：纯 tool_calls 无文本是正常中间态（模型先调工具再写），不抛错。
+            # v15.12f：诊断紧跟原文案之后（下游按子串匹配，且调用方会 [:200] 截断，
+            # 放在末尾会被切掉）。判别口径：
+            #   reasoning 有计数 / text 为 0 → 模型只 Reasoning 就停了（reasoning-only）
+            #   events 全 0                      → provider 根本没发事件（真空回）
+            #   usage.outputTokens>0 而 text=0   → delta 在转发层被吞（桥接 bug）
+            raise LLMRetryableError(
+                "DSH bridge completed response with no content"
+                f" [finish={finish_reason} ev={ev_counts} out_tok={(usage or {}).get('outputTokens')}"
+                f" bad_json={ev_bad_json}]",
+                retry_after_s=5.0,
+            )
 
         meta_out = CallMeta(
             finish_reason=finish_reason,
@@ -288,7 +351,64 @@ class DSHBridgeClient(BaseLLMClient):
             http_status=meta.get("http_status"),
             transport="dsh_bridge",
         ).as_dict()
+        if pending_tool_calls:
+            meta_out["tool_calls"] = pending_tool_calls
         return text, meta_out
+
+
+def tool_exec_url(bridge_url: str = None) -> str:
+    """tool-exec 端点 URL（v15.10）：与 llm-stream 同源，把尾巴换掉。"""
+    base = (bridge_url or _default_dsh_bridge_url()).strip()
+    if base.endswith("/llm-stream"):
+        return base[: -len("/llm-stream")] + "/tool-exec"
+    return base.rstrip("/") + "/tool-exec"
+
+
+def tool_exec(name: str, args: dict, timeout_s: float = DEFAULT_TOOL_EXEC_TIMEOUT_S,
+              bridge_url: str = None) -> str:
+    """执行一个 DSH 宿主工具调用（v15.10）：POST /api/council/tool-exec。
+    插件侧只放行 allowlist 内的只读工具（web_search/web_fetch），经 ctx.web 执行；
+    这里只做传输 + 错误分类。返回结果文本；失败按分类抛错。"""
+    url = tool_exec_url(bridge_url)
+    payload = {"name": name, "args": args or {},
+               "session_id": _BRIDGE_SESSION_ID}
+    data = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(url, data=data, headers={
+        "Content-Type": "application/json",
+        "User-Agent": "dsh-council-bridge/1.0",
+    }, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=timeout_s) as resp:
+            raw = resp.read(256 * 1024).decode("utf-8", "replace")
+    except urllib.error.HTTPError as e:
+        try:
+            body = e.read(2000).decode("utf-8", "replace")
+        except Exception:
+            body = ""
+        kind = classify_bridge_error(body)
+        if kind == "quota":
+            raise LLMQuotaExhaustedError(
+                f"QUOTA_EXHAUSTED: tool-exec HTTP {e.code}: {body[:300]}",
+                http_status=e.code)
+        if kind == "rate" or e.code == 429 or 500 <= e.code < 600:
+            raise LLMRetryableError(f"tool-exec HTTP {e.code}: {body[:300]}",
+                                    retry_after_s=10.0)
+        raise LLMPermanentError(f"tool-exec HTTP {e.code}: {body[:300]}",
+                                http_status=e.code)
+    except (TimeoutError, OSError) as e:
+        raise LLMRetryableError(f"tool-exec network error: {e}"[:200],
+                                retry_after_s=10.0)
+    try:
+        obj = json.loads(raw)
+    except json.JSONDecodeError:
+        raise LLMPermanentError(f"tool-exec 非 JSON 响应：{raw[:200]}")
+    if not isinstance(obj, dict) or not obj.get("ok"):
+        err = str((obj or {}).get("error", "unknown"))[:300]
+        kind = classify_bridge_error(err)
+        if kind == "rate":
+            raise LLMRetryableError(f"tool-exec error: {err}", retry_after_s=10.0)
+        raise LLMPermanentError(f"tool-exec error: {err}")
+    return str(obj.get("result", ""))
 
 
 def _stream_sse_lines(url, headers, payload, idle_timeout, total_timeout):

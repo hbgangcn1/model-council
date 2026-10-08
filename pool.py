@@ -1,7 +1,7 @@
 """模型池名单（model-pool.json）——v15.5-K 成员准入第一层。
 
-- 池成员 = model 粒度名单（全档位按 host-side tier-bridge展开）。
-- 增=手动（控制台/端点写）、删=自动为主（DSH 删模型自动退役）+ 手动删除。
+- 池成员 = model 粒度名单（全档位按 DSH 档位桥展开）。
+- 增=手动（控制台/端点写）、删=手动（2026-10-03 Robert 拍板：全手动，自动检测只提议+告警）。
 - build_capabilities 只为池成员生成档案条目；未跑分成员天然无档案条目 → 不参与选择。
 - 文件缺失时按「桥文件全模型 active」初始化（向后兼容迁移：现有模型全入池）。
 """
@@ -61,7 +61,7 @@ def add(model: str, note: str = "") -> dict:
 
 
 def remove(model: str, reason: str) -> dict:
-    """从池移除（retired-by-user / retired-by-dsh-removal）。成绩保留只读。"""
+    """从池移除（手动，控制台操作。reason 只能是 retired-by-user；retired-by-dsh-removal 已废止，见 2026-10-03 全手动政策）。成绩保留只读。"""
     doc = load()
     for m in doc.get("models", []):
         if m["model"] == model:
