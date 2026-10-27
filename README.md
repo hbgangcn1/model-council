@@ -91,6 +91,12 @@ The repo ships a prebuilt snapshot — 18 capability entries, 36 golden items,
 37 bench cases — so you skip the $15–25 first benchmark. Run
 `./scripts/first-bench.sh` later when you want your own scores.
 
+> **Snapshot scope.** That prebuilt snapshot was cut when the bench had **37 cases**;
+> the current case set in `benchmark/v21-cases.json` has grown to **56**, so re-running the
+> benchmark scores against the larger set. The shipped `capabilities.json` is likewise a
+> **sanitized 18-entry starter** (a live archive accumulates one entry per `model@thinking`),
+> and the 36 golden items are unchanged.
+
 ### Configure
 
 Model Council needs:
@@ -273,6 +279,11 @@ python -m orchestrator.council_v14 --task "评审这个设计决策" --tier fast
 
 仓库自带预置快照——18 条能力档案、36 题金标、37 道考题，跳过 $15–25 的
 首次跑分。以后想换自己的分数再跑 `./scripts/first-bench.sh`。
+
+> **快照口径说明。** 该预置快照切在 **37 道考题**时代；现役用例集
+> `benchmark/v21-cases.json` 已扩至 **56 道**，重跑 benchmark 会用新集打分。
+> 仓库自带的 `capabilities.json` 同样是**脱敏的 18 条 starter 快照**（现役档案会为每个
+> `model@thinking` 累积一条）；36 题金标未变。
 
 ### 配置
 
